@@ -29,19 +29,31 @@ function isLocalDev() {
   return host === 'localhost' || host === '127.0.0.1'
 }
 
-/** Same-origin /api/v1 proxy on production avoids CORS failures during cold start. */
+/** Production uses direct API URL; same-origin /api proxy 301-redirects and breaks POST. */
 function getApiBase() {
-  if (!isLocalDev()) return '/api/v1'
+  if (!isLocalDev()) return 'https://thrivehub-api.onrender.com/api/v1'
   return import.meta.env.VITE_API_URL || '/api/v1'
 }
 
 function getHealthUrl() {
-  if (!isLocalDev()) return `${window.location.origin}/health`
+  if (!isLocalDev()) return 'https://thrivehub-api.onrender.com/health'
   const apiUrl = import.meta.env.VITE_API_URL || '/api/v1'
   if (apiUrl.startsWith('http')) {
     return apiUrl.replace(/\/api\/v1\/?$/, '') + '/health'
   }
   return 'http://localhost:8000/health'
+}
+
+async function isHealthyResponse(res) {
+  if (!res.ok) return false
+  const contentType = res.headers.get('content-type') || ''
+  if (!contentType.includes('application/json')) return false
+  try {
+    const data = await res.json()
+    return data?.status === 'ok'
+  } catch {
+    return false
+  }
 }
 
 function isNetworkError(err) {
@@ -89,7 +101,7 @@ export async function wakeApi({ onStatus, maxWaitMs = WAKE_TIMEOUT_MS } = {}) {
         method: 'GET',
         signal: AbortSignal.timeout(10000),
       })
-      if (res.ok) return true
+      if (await isHealthyResponse(res)) return true
     } catch {
       // keep retrying until maxWaitMs
     }
