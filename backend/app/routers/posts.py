@@ -153,6 +153,20 @@ def create_post(payload: PostCreate, user: User = Depends(get_current_user), db:
         image_url=payload.image_url,
     )
     db.add(post)
+    db.flush()
+
+    # Queue cross-posts to connected external channels (YouTube/Instagram/X/Facebook).
+    if payload.cross_post:
+        from app.models import PostPublishTarget, SocialConnection, SOCIAL_PROVIDERS
+
+        connected = {
+            c.provider
+            for c in db.query(SocialConnection).filter(SocialConnection.user_id == user.id).all()
+        }
+        for provider in payload.cross_post:
+            if provider in SOCIAL_PROVIDERS and provider in connected:
+                db.add(PostPublishTarget(post_id=post.id, provider=provider, status="queued"))
+
     db.commit()
     db.refresh(post)
     post = db.query(Post).options(joinedload(Post.author).joinedload(User.profile)).filter(Post.id == post.id).first()

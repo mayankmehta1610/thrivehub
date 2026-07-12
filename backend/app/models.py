@@ -606,3 +606,34 @@ class DeviceToken(Base):
     user: Mapped["User"] = relationship()
 
     __table_args__ = (UniqueConstraint("user_id", "platform", "token", name="uq_device_token"),)
+
+
+# --- Social publishing integrations (cross-post to external platforms) ---
+
+SOCIAL_PROVIDERS = ("youtube", "instagram", "x", "facebook")
+
+
+class SocialConnection(Base):
+    __tablename__ = "social_connections"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), index=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    provider: Mapped[str] = mapped_column(String(32))  # youtube | instagram | x | facebook
+    external_username: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), default="connected")
+    connected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    user: Mapped["User"] = relationship()
+
+    __table_args__ = (UniqueConstraint("user_id", "provider", name="uq_social_conn_user_provider"),)
+
+
+class PostPublishTarget(Base):
+    __tablename__ = "post_publish_targets"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    post_id: Mapped[str] = mapped_column(ForeignKey("posts.id"), index=True)
+    provider: Mapped[str] = mapped_column(String(32))
+    status: Mapped[str] = mapped_column(String(32), default="queued")  # queued | published | failed
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

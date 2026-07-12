@@ -531,6 +531,19 @@ class ApiClient {
     return res.json()
   }
 
+  // Social publishing integrations
+  getSocialConnections() {
+    return this.get('/me/social-connections')
+  }
+
+  connectSocial(provider, external_username) {
+    return this.post(`/me/social-connections/${provider}`, { external_username })
+  }
+
+  disconnectSocial(provider) {
+    return this.delete(`/me/social-connections/${provider}`)
+  }
+
   // Push
   registerDevice(platform, token) {
     return this.post('/push/register', { platform, token })

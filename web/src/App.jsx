@@ -14,6 +14,7 @@ import Communities from './pages/Communities'
 import CommunityDetail from './pages/CommunityDetail'
 import Events from './pages/Events'
 import EventDetail from './pages/EventDetail'
+import PostDetail from './pages/PostDetail'
 import Messages from './pages/Messages'
 import Notifications from './pages/Notifications'
 import SearchPage from './pages/SearchPage'
@@ -48,6 +49,7 @@ function AppRoutes() {
       <Route path="/communities/:slug" element={<CommunityDetail />} />
       <Route path="/events" element={<PrivateRoute><Events /></PrivateRoute>} />
       <Route path="/events/:id" element={<EventDetail />} />
+      <Route path="/posts/:id" element={<PostDetail />} />
       <Route path="/messages" element={<PrivateRoute><Messages /></PrivateRoute>} />
       <Route path="/notifications" element={<PrivateRoute><Notifications /></PrivateRoute>} />
       <Route path="/search" element={<PrivateRoute><SearchPage /></PrivateRoute>} />

@@ -1,16 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Image, Send } from 'lucide-react'
 import api from '../api/client'
 import Navbar from '../components/Navbar'
 import PostCard from '../components/PostCard'
 import SafeImage from '../components/SafeImage'
-import { isValidImageUrl } from '../utils/images'
+import { isValidImageUrl, isVideoUrl } from '../utils/images'
+import { SOCIAL_META } from '../utils/social'
 import { getUploadLimits, getFileSizeError } from '../utils/upload'
+import { useAuth } from '../context/AuthContext'
 import { useRequireAuth } from '../hooks/useRequireAuth'
 import { AUTH_MESSAGES } from '../utils/authMessages'
 
 export default function Feed() {
   const requireAuth = useRequireAuth()
+  const { user } = useAuth()
   const [config, setConfig] = useState(null)
   const [posts, setPosts] = useState([])
   const [page, setPage] = useState(1)
@@ -21,7 +25,11 @@ export default function Feed() {
   const [uploadError, setUploadError] = useState('')
   const [uploading, setUploading] = useState(false)
   const [sponsors, setSponsors] = useState([])
+  const [connections, setConnections] = useState([])
+  const [crossPost, setCrossPost] = useState([])
   const fileInputRef = useRef(null)
+
+  const connectedProviders = connections.filter((c) => c.connected)
 
   const loadFeed = useCallback(async () => {
     setLoading(true)
@@ -40,14 +48,24 @@ export default function Feed() {
     loadFeed()
   }, [loadFeed])
 
+  useEffect(() => {
+    if (user) api.getSocialConnections().then(setConnections).catch(() => setConnections([]))
+    else setConnections([])
+  }, [user])
+
+  const toggleCrossPost = (provider) => {
+    setCrossPost((prev) => (prev.includes(provider) ? prev.filter((p) => p !== provider) : [...prev, provider]))
+  }
+
   const handlePost = async (e) => {
     e.preventDefault()
     if (!requireAuth(AUTH_MESSAGES.createPost)) return
     if (!newPost.trim()) return
-    await api.createPost({ body: newPost, image_url: imageUrl || undefined })
+    await api.createPost({ body: newPost, image_url: imageUrl || undefined, cross_post: crossPost })
     setNewPost('')
     setImageUrl('')
     setUploadError('')
+    setCrossPost([])
     loadFeed()
   }
 
@@ -99,10 +117,17 @@ export default function Feed() {
             rows={3}
             className="w-full resize-none border-0 focus:outline-none text-slate-700 placeholder:text-slate-400"
           />
+          {imageUrl && (
+            <div className="mt-2 rounded-xl overflow-hidden border border-slate-100">
+              {isVideoUrl(imageUrl)
+                ? <video src={imageUrl} controls className="w-full max-h-64 bg-black" />
+                : <SafeImage src={imageUrl} alt="" className="w-full max-h-64 object-cover" />}
+            </div>
+          )}
           <input
             value={imageUrl}
             onChange={(e) => setImageUrl(e.target.value)}
-            placeholder="Image URL (optional - Unsplash/Pexels)"
+            placeholder="…or paste an image/video URL"
             className="w-full mt-2 px-3 py-2 text-sm rounded-xl border border-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-400"
           />
           {uploadError && (
@@ -115,6 +140,31 @@ export default function Feed() {
             className="hidden"
             onChange={handleFileSelect}
           />
+
+          {/* Cross-post to connected social channels */}
+          {connectedProviders.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="text-xs text-slate-400">Also post to:</span>
+              {connectedProviders.map((c) => {
+                const meta = SOCIAL_META[c.provider]
+                if (!meta) return null
+                const on = crossPost.includes(c.provider)
+                return (
+                  <button
+                    key={c.provider}
+                    type="button"
+                    onClick={() => toggleCrossPost(c.provider)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                      on ? 'bg-violet-50 border-violet-300 text-violet-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span aria-hidden="true">{meta.emoji}</span> {meta.label}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-50">
             <button
               type="button"
@@ -123,10 +173,10 @@ export default function Feed() {
                 if (!requireAuth(AUTH_MESSAGES.uploadMedia)) return
                 fileInputRef.current?.click()
               }}
-              className="p-2 rounded-xl text-slate-400 hover:bg-slate-50 disabled:opacity-50"
-              title="Upload image or video (max 500KB / 2MB)"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-500 hover:bg-slate-50 disabled:opacity-50 text-sm font-medium"
+              title="Upload a photo or video (max 500 KB image / 2 MB video)"
             >
-              <Image className="w-5 h-5" />
+              <Image className="w-5 h-5" /> {uploading ? 'Uploading…' : 'Photo / Video'}
             </button>
             <button
               type="submit"
@@ -136,6 +186,12 @@ export default function Feed() {
               <Send className="w-4 h-4" /> Post
             </button>
           </div>
+          {user && connectedProviders.length === 0 && (
+            <p className="mt-2 text-xs text-slate-400">
+              Want to share to YouTube, Instagram, X or Facebook?{' '}
+              <Link to={`/profile/${user.profile?.username}`} className="text-violet-600 hover:underline">Connect accounts</Link> in your profile settings.
+            </p>
+          )}
         </form>
 
         {loading ? (

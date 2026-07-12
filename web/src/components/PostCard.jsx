@@ -8,12 +8,12 @@ import EngagementModal from './EngagementModal'
 import { useAuth } from '../context/AuthContext'
 import { useRequireAuth } from '../hooks/useRequireAuth'
 import { AUTH_MESSAGES } from '../utils/authMessages'
-import { isValidImageUrl } from '../utils/images'
+import { isValidImageUrl, isVideoUrl } from '../utils/images'
 
-export default function PostCard({ post, onUpdate, isOwn = false }) {
+export default function PostCard({ post, onUpdate, isOwn = false, linkToDetail = true, defaultOpenComments = false }) {
   const { user } = useAuth()
   const requireAuth = useRequireAuth()
-  const [showComments, setShowComments] = useState(false)
+  const [showComments, setShowComments] = useState(defaultOpenComments)
   const [engagementModal, setEngagementModal] = useState(null)
   const [localPost, setLocalPost] = useState(post)
   const [shareToast, setShareToast] = useState('')
@@ -167,11 +167,25 @@ export default function PostCard({ post, onUpdate, isOwn = false }) {
         </div>
 
         <div className="px-4 pb-3">
-          <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">{p.body}</p>
+          {linkToDetail ? (
+            <Link to={`/posts/${p.id}`} className="block">
+              <p className="text-slate-700 leading-relaxed whitespace-pre-wrap hover:text-slate-900">{p.body}</p>
+            </Link>
+          ) : (
+            <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">{p.body}</p>
+          )}
         </div>
 
         {isValidImageUrl(p.image_url) && (
-          <SafeImage src={p.image_url} alt="" className="w-full max-h-96 object-cover" hideOnError />
+          isVideoUrl(p.image_url) ? (
+            <video src={p.image_url} controls className="w-full max-h-96 bg-black" />
+          ) : linkToDetail ? (
+            <Link to={`/posts/${p.id}`} className="block">
+              <SafeImage src={p.image_url} alt="" className="w-full max-h-96 object-cover" hideOnError />
+            </Link>
+          ) : (
+            <SafeImage src={p.image_url} alt="" className="w-full max-h-96 object-cover" hideOnError />
+          )
         )}
 
         <div className="px-4 py-3 flex items-center gap-4 sm:gap-6 border-t border-slate-50 flex-wrap">

@@ -13,6 +13,7 @@ import { useAuth } from '../context/AuthContext'
 import { useRequireAuth } from '../hooks/useRequireAuth'
 import { AUTH_MESSAGES } from '../utils/authMessages'
 import { filterValidImages } from '../utils/images'
+import { SOCIAL_PROVIDERS } from '../utils/social'
 import { getUploadLimits, getFileSizeError } from '../utils/upload'
 
 const SKILL_ICONS = {
@@ -69,6 +70,8 @@ export default function Profile() {
   const [showReport, setShowReport] = useState(false)
   const [reportReason, setReportReason] = useState('')
   const [lightboxPhoto, setLightboxPhoto] = useState(null)
+  const [connections, setConnections] = useState([])
+  const [connBusy, setConnBusy] = useState('')
   const [postsLoading, setPostsLoading] = useState(true)
   const [uploadError, setUploadError] = useState('')
   const avatarFileRef = useRef(null)
@@ -173,6 +176,30 @@ export default function Profile() {
     setUploadError('')
   }
 
+  const openEdit = () => {
+    if (!requireAuth(AUTH_MESSAGES.editProfile)) return
+    setEditing(true)
+    api.getSocialConnections().then(setConnections).catch(() => setConnections([]))
+  }
+
+  const toggleConnection = async (provider, connected) => {
+    setConnBusy(provider)
+    try {
+      if (connected) {
+        await api.disconnectSocial(provider)
+        toast.success('Disconnected')
+      } else {
+        await api.connectSocial(provider)
+        toast.success('Connected 🎉')
+      }
+      setConnections(await api.getSocialConnections())
+    } catch (err) {
+      toast.error(err?.message || 'Could not update connection')
+    } finally {
+      setConnBusy('')
+    }
+  }
+
   const handlePhotoUpload = async (file, field) => {
     if (!requireAuth(AUTH_MESSAGES.uploadMedia)) return
     if (!file) return
@@ -257,7 +284,7 @@ export default function Profile() {
 
               <div className="flex gap-2 shrink-0 self-start sm:self-end">
                 {isOwn ? (
-                  <button onClick={() => requireAuth(AUTH_MESSAGES.editProfile) && setEditing(true)} className="btn-edit-profile">
+                  <button onClick={openEdit} className="btn-edit-profile">
                     <Edit className="w-4 h-4" /> Edit Profile
                   </button>
                 ) : (
@@ -458,6 +485,43 @@ export default function Profile() {
                 />
               )
             ))}
+            {/* Connected accounts — cross-post to external channels */}
+            <div className="pt-2 border-t border-slate-100">
+              <h4 className="text-sm font-semibold text-slate-800 mb-1">Connected Accounts</h4>
+              <p className="text-xs text-slate-400 mb-3">
+                Connect channels to also publish your posts there. (Live publishing to each platform
+                requires that platform's API credentials — connecting here enables cross-post targets.)
+              </p>
+              <div className="space-y-2">
+                {SOCIAL_PROVIDERS.map(({ code, label, emoji }) => {
+                  const conn = connections.find((c) => c.provider === code)
+                  const connected = !!conn?.connected
+                  return (
+                    <div key={code} className="flex items-center justify-between">
+                      <span className="flex items-center gap-2 text-sm text-slate-700">
+                        <span aria-hidden="true">{emoji}</span> {label}
+                        {connected && conn?.external_username && (
+                          <span className="text-xs text-slate-400">@{conn.external_username}</span>
+                        )}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={connBusy === code}
+                        onClick={() => toggleConnection(code, connected)}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium border disabled:opacity-50 ${
+                          connected
+                            ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100'
+                            : 'bg-white text-violet-600 border-violet-200 hover:bg-violet-50'
+                        }`}
+                      >
+                        {connBusy === code ? '…' : connected ? 'Disconnect' : 'Connect'}
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
             <div className="flex gap-2 justify-end pt-2">
               <button onClick={() => setEditing(false)} className="px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-50">
                 Cancel

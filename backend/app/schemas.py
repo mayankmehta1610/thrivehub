@@ -163,6 +163,18 @@ class PostCreate(BaseModel):
     audience: str = "public"
     community_id: str | None = None
     image_url: str | None = None
+    cross_post: list[str] = []  # provider codes to also publish to (must be connected)
+
+
+class SocialConnectionOut(BaseModel):
+    provider: str
+    connected: bool = False
+    external_username: str | None = None
+    status: str | None = None
+
+
+class SocialConnectRequest(BaseModel):
+    external_username: str | None = None
 
 
 class PostUpdate(BaseModel):

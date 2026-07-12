@@ -19,6 +19,7 @@ from app.routers import (
     posts,
     profiles,
     push,
+    social,
     subscriptions,
     trust,
     websocket,
@@ -50,6 +51,7 @@ app.include_router(admin.router, prefix=api)
 app.include_router(trust.router, prefix=api)
 app.include_router(moderation.router, prefix=api)
 app.include_router(subscriptions.router, prefix=api)
+app.include_router(social.router, prefix=api)
 app.include_router(ai_moderation.router, prefix=api)
 app.include_router(media.router, prefix=api)
 app.include_router(push.router, prefix=api)
