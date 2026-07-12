@@ -33,6 +33,7 @@ from app.models import (
     ProfilePhoto,
     Reaction,
     Report,
+    Share,
     Sponsorship,
     SubscriptionTier,
     Tenant,
@@ -99,6 +100,7 @@ DEMO_USERS = [
     ("lens@thrivehub.com", "demo1234", "Chris Nguyen", "chrislens", True, "member", "Street & landscape photographer", 9),
     ("riley@thrivehub.com", "demo1234", "Riley Brooks", "rileybrooks", False, "member", "CrossFit coach & wellness advocate", 10),
     ("art@thrivehub.com", "demo1234", "Sofia Mendez", "sofiamendez", True, "member", "Digital artist & mural painter", 11),
+    ("ananya@thrivehub.com", "demo1234", "Ananya Sharma", "ananya", True, "member", "Dance, yoga & community builder", 12),
 ]
 
 AVATARS = [
@@ -114,6 +116,7 @@ AVATARS = [
     "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=200",
     "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200",
     "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200",
+    "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200",
 ]
 
 COVERS = [
@@ -129,12 +132,14 @@ COVERS = [
     "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=1200",
     "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1200",
     "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=1200",
+    _img("1529156069898-49953e39b3ac", 1200),
 ]
 
 LOCATIONS = [
     "San Francisco, CA", "Austin, TX", "Denver, CO", "Seattle, WA",
     "Los Angeles, CA", "Chicago, IL", "Portland, OR", "Miami, FL",
     "New York, NY", "Boston, MA", "Nashville, TN", "Phoenix, AZ",
+    "Bengaluru, India",
 ]
 
 # Rich profile extensions keyed by username (upserted idempotently)
@@ -257,6 +262,51 @@ RICH_PROFILES: dict[str, dict] = {
             ("https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=800", "Latest mural"),
             ("https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800", "Studio work in progress"),
             ("https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=800", "Gallery opening"),
+        ],
+    },
+    "ananya": {
+        "bio": (
+            "Dance instructor, yoga practitioner, and community builder based in Bengaluru. "
+            "I blend classical Bharatanatyam roots with contemporary movement, host weekend wellness "
+            "retreats, and believe the best communities are built one shared experience at a time. "
+            "Find me at sunrise yoga, evening salsa, or planning the next neighbourhood potluck."
+        ),
+        "location": "Bengaluru, India",
+        "avatar_url": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&q=80",
+        "cover_url": _img("1529156069898-49953e39b3ac", 1200),
+        "skills": ["dance", "fitness", "music", "photography", "cooking"],
+        "photos": [
+            ("https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800", "Contemporary dance rehearsal"),
+            ("https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800", "Sunrise yoga flow"),
+            (_img("1529156069898-49953e39b3ac", 800), "Community wellness meetup"),
+            (IMG_MUSIC_ACOUSTIC, "Acoustic evening with friends"),
+            ("https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=800", "Behind the lens — festival portraits"),
+        ],
+        "posts": [
+            ("Opened our weekend Bharatanatyam workshop to 25 new students today. The joy on their faces when they nailed their first mudra — priceless! 🙏",
+             PostType.image, "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=800"),
+            ("Sunrise yoga in Cubbon Park never gets old. 40 of us flowed together this morning — DM me for next Saturday's session.",
+             PostType.image, "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800"),
+            ("Community isn't built in a day — it's built in a thousand small moments. Grateful for everyone who showed up to our neighbourhood potluck last night.",
+             PostType.text, None),
+            ("Salsa night was electric! Shoutout to @priyadance for co-hosting — we had dancers from three cities on the floor.",
+             PostType.image, "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800"),
+            ("Teaching beginners reminds me why I started dancing. No judgment, just movement and joy.",
+             PostType.text, None),
+            ("Planning a wellness retreat in Coorg next month — yoga, dance, farm-to-table meals. Who's interested? Drop a comment!",
+             PostType.image, _img("1529156069898-49953e39b3ac", 800)),
+            ("Caught these golden-hour portraits at the community festival. Photography teaches patience — and celebration.",
+             PostType.image, "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=800"),
+            ("Meal prep Sunday: coconut chutney, masala dosa batter, and enough dal for the week. Cooking is my meditation.",
+             PostType.image, "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800"),
+            ("New contemporary fusion class starts Wednesday 7pm — all levels welcome. Link in bio to register!",
+             PostType.achievement, IMG_DANCE_CLASS),
+            ("Three years of building the Bengaluru Movement Collective. From 5 friends in a studio to 200+ members. Here's to many more.",
+             PostType.achievement, "https://images.unsplash.com/photo-1504609773096-104ff2c73ba4?w=800"),
+            ("Sometimes the best conversations happen after class over chai. Thank you to everyone who stayed late last night.",
+             PostType.text, None),
+            ("Acoustic jam with @miatorres last week — dance and music are soul siblings. More collabs coming soon!",
+             PostType.image, IMG_MUSIC_ACOUSTIC),
         ],
     },
 }
@@ -634,6 +684,297 @@ def _ensure_post(db: Session, tenant, author: User, body: str, ptype: PostType,
     return post
 
 
+EXTRA_POSTS: dict[str, list[tuple[str, PostType, str | None]]] = {
+    "alex@thrivehub.com": [
+        ("Morning 5K done before sunrise. Nothing beats that runner's high.", PostType.text, None),
+        ("Trail crew meetup this Saturday — who's in?", PostType.text, None),
+        ("Recovery day: foam rolling and hydration. Rest is training too.", PostType.text, None),
+        ("Signed up for my second marathon. Training block starts Monday!", PostType.achievement, IMG_MARATHON),
+        ("Community run was a blast — 50 people showed up!", PostType.image, IMG_TRAIL_RUN),
+        ("Tips for first-time marathoners: start slow, stay consistent.", PostType.text, None),
+        ("Grateful for this amazing running community.", PostType.text, None),
+        ("Hill repeats today. Legs are jelly but spirit is strong.", PostType.text, None),
+        ("New running shoes broke in perfectly on today's long run.", PostType.image, _img("1552674605-db6ffd4facb5", 800)),
+        ("Hosting a charity 10K next month. DM for details!", PostType.event, None),
+        ("Cross-training with yoga — game changer for flexibility.", PostType.text, None),
+        ("PB on my tempo run! 7:15/mile average.", PostType.achievement, None),
+    ],
+    "sam@thrivehub.com": [
+        ("Summit views from yesterday's hike were unreal.", PostType.image, _img("1506905925346-21bda4d32df4", 800)),
+        ("Packing list for a day hike: water, snacks, layers, good vibes.", PostType.text, None),
+        ("Found a hidden waterfall on the coastal trail.", PostType.image, IMG_HIKING),
+        ("Who wants to join a backpacking trip next month?", PostType.text, None),
+        ("Leave no trace — always pack out what you pack in.", PostType.text, None),
+        ("Sunrise from the ridge. Worth the 4am alarm.", PostType.image, _img("1464822759023-fed622ff2c3b", 800)),
+        ("Trail maintenance volunteer day was rewarding.", PostType.text, None),
+        ("New hiking boots = happy feet on rocky terrain.", PostType.text, None),
+        ("Camping under the stars last weekend. Pure magic.", PostType.image, _img("1504280390367-361c6d9f38f4", 800)),
+        ("Sharing my favorite local trail map in comments.", PostType.text, None),
+        ("Rainy day hike? Embrace the mist and mud!", PostType.text, None),
+        ("Adventure is out there — go find yours.", PostType.text, None),
+    ],
+    "jordan@thrivehub.com": [
+        ("Sunday league match — we won 3-1!", PostType.achievement, None),
+        ("Looking for midfielders for our weekend pickup games.", PostType.text, None),
+        ("Great turnout at practice tonight. Team chemistry is building.", PostType.text, None),
+        ("Football teaches teamwork like nothing else.", PostType.text, None),
+        ("New cleats, new season, same passion.", PostType.image, _img("1574629810360-7efbbe195018", 800)),
+        ("Youth coaching session was inspiring — future stars!", PostType.text, None),
+        ("Match highlights reel dropping soon.", PostType.text, None),
+        ("Tournament registration open — link in bio.", PostType.event, None),
+        ("Post-game recovery: stretch, hydrate, reflect.", PostType.text, None),
+        ("Shoutout to our goalkeeper for that incredible save.", PostType.text, None),
+        ("Building a diverse team — all skill levels welcome.", PostType.text, None),
+        ("Football unites people across every background.", PostType.text, None),
+    ],
+    "dancer@thrivehub.com": [
+        ("New choreography piece in progress — contemporary fusion.", PostType.text, None),
+        ("Dance is my language. What's yours?", PostType.text, None),
+        ("Workshop feedback was incredible. Thank you all!", PostType.image, "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800"),
+        ("Stretching routine for dancers — share yours below.", PostType.text, None),
+        ("Bachata social this Friday. Beginners welcome!", PostType.event, None),
+        ("Behind the scenes of our latest performance.", PostType.image, "https://images.unsplash.com/photo-1504609773096-104ff2c73ba4?w=800"),
+        ("Music recommendation thread — what are you dancing to?", PostType.text, None),
+        ("Teaching kids hip-hop basics today. Pure joy.", PostType.text, None),
+        ("Dance floor energy last night was electric.", PostType.text, None),
+        ("Collaborating with local musicians for a live show.", PostType.text, None),
+        ("Flexibility goals: splits by end of summer.", PostType.achievement, None),
+        ("Every body is a dance body. Come as you are.", PostType.text, None),
+    ],
+    "comedian@thrivehub.com": [
+        ("New bit about airport security tested well last night.", PostType.text, None),
+        ("Open mic signup link in comments — 5 min sets!", PostType.event, None),
+        ("Writing is rewriting. Draft 7 of my closer.", PostType.text, None),
+        ("Crowd work gold from last weekend's show.", PostType.text, None),
+        ("Comedy workshop for beginners — limited spots.", PostType.text, None),
+        ("The best laughs come from truth.", PostType.text, None),
+        ("Bombing teaches you more than killing.", PostType.text, None),
+        ("Recording a short set for social — nervous!", PostType.image, "https://images.unsplash.com/photo-1585699324551-f6c309eedeca?w=800"),
+        ("Shoutout to the comedy community for the support.", PostType.text, None),
+        ("New material night every Tuesday. Come heckle (nicely).", PostType.text, None),
+        ("Timing is everything in comedy and life.", PostType.text, None),
+        ("Just got booked for a festival set. Dream come true!", PostType.achievement, None),
+    ],
+    "mia@thrivehub.com": [
+        ("Acoustic session at the cafe — such a warm crowd.", PostType.image, IMG_MUSIC_ACOUSTIC),
+        ("Working on lyrics for my next single.", PostType.text, None),
+        ("Vocal warmups saved my voice today.", PostType.text, None),
+        ("Collaborating with a local producer. Exciting times!", PostType.text, None),
+        ("Cover song suggestions? Drop them below.", PostType.text, None),
+        ("Music theory tip: learn the circle of fifths.", PostType.text, None),
+        ("Open mic at the jazz club tonight.", PostType.event, None),
+        ("Teaching students their first chord progressions.", PostType.text, None),
+        ("Songwriting is therapy with a melody.", PostType.text, None),
+        ("New guitar strings = new inspiration.", PostType.text, None),
+        ("Grateful for every listener who streams my music.", PostType.text, None),
+        ("Studio day — tracking vocals for the EP.", PostType.achievement, None),
+    ],
+    "chef@thrivehub.com": [
+        ("Homemade pasta from scratch. Recipe in comments!", PostType.image, "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800"),
+        ("Farmers market haul — seasonal cooking ahead.", PostType.text, None),
+        ("Meal prep Sunday: 5 days of healthy lunches.", PostType.text, None),
+        ("Fusion night: Korean tacos with kimchi slaw.", PostType.image, "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800"),
+        ("Knife skills workshop coming up — DM to join.", PostType.text, None),
+        ("The secret ingredient is always love (and salt).", PostType.text, None),
+        ("Baking sourdough — patience is the main ingredient.", PostType.text, None),
+        ("Community potluck was a feast of flavors.", PostType.text, None),
+        ("Zero-waste cooking tips thread.", PostType.text, None),
+        ("Spice rack organization = chef happiness.", PostType.text, None),
+        ("Dinner party menu planning — suggestions welcome!", PostType.text, None),
+        ("Won the neighborhood cook-off! People's Choice award.", PostType.achievement, None),
+    ],
+    "lens@thrivehub.com": [
+        ("Street photography walk downtown — caught some gems.", PostType.image, "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=800"),
+        ("Golden hour never disappoints at the waterfront.", PostType.image, "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800"),
+        ("Camera settings for low light — sharing my go-to.", PostType.text, None),
+        ("Portrait session with natural light only.", PostType.image, _img("1516035069371-29a1b244cc32", 800)),
+        ("Photo walk this weekend — all cameras welcome.", PostType.event, None),
+        ("Editing workflow: Lightroom tips for beginners.", PostType.text, None),
+        ("Composition rule: leading lines change everything.", PostType.text, None),
+        ("Macro lens experiments in the garden.", PostType.image, _img("1416879595882-3373a0480b5b", 800)),
+        ("Print your photos — they hit different on paper.", PostType.text, None),
+        ("Behind the lens: the story of this shot.", PostType.text, None),
+        ("Gear doesn't make the photographer — vision does.", PostType.text, None),
+        ("Featured in a local gallery show. Honored!", PostType.achievement, None),
+    ],
+    "riley@thrivehub.com": [
+        ("HIIT class crushed it today. Who's sore with me?", PostType.text, None),
+        ("Nutrition tip: protein within 30 min post-workout.", PostType.text, None),
+        ("New PR on bench press — 225lbs!", PostType.achievement, "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800"),
+        ("Morning yoga flow to start the day right.", PostType.image, "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800"),
+        ("Group training session — energy was off the charts.", PostType.text, None),
+        ("Rest day doesn't mean lazy day. Active recovery walk.", PostType.text, None),
+        ("Form check: squat depth matters more than weight.", PostType.text, None),
+        ("Wellness isn't a destination, it's a lifestyle.", PostType.text, None),
+        ("Client transformation story — so proud!", PostType.text, None),
+        ("Supplement myths debunked thread.", PostType.text, None),
+        ("Outdoor bootcamp in the park — join us!", PostType.event, None),
+        ("Consistency beats motivation. Show up anyway.", PostType.text, None),
+    ],
+    "art@thrivehub.com": [
+        ("New mural going up downtown — sneak peek!", PostType.image, "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=800"),
+        ("Digital art process: sketch to final render.", PostType.text, None),
+        ("Color theory changed how I see the world.", PostType.text, None),
+        ("Art supply haul — trying new watercolor techniques.", PostType.text, None),
+        ("Commission slots open for March.", PostType.text, None),
+        ("Gallery opening night was magical.", PostType.image, _img("1547891654-ee65ed6cdd60", 800)),
+        ("Art is for everyone. Don't wait for permission.", PostType.text, None),
+        ("Collaborating with a local band on album art.", PostType.text, None),
+        ("Sketch daily challenge — day 45!", PostType.text, None),
+        ("Studio tour coming soon on my profile.", PostType.text, None),
+        ("Supporting local artists — share your work below!", PostType.text, None),
+        ("Sold my first original piece. Unreal feeling!", PostType.achievement, None),
+    ],
+    "admin@thrivehub.com": [
+        ("Platform update: new community features rolling out.", PostType.text, None),
+        ("Reminder: keep conversations respectful and kind.", PostType.text, None),
+        ("Welcome to all new members this week!", PostType.text, None),
+        ("Moderation team office hours every Thursday.", PostType.text, None),
+        ("Bug fixes deployed — report issues in support.", PostType.text, None),
+        ("Community guidelines refresh — please review.", PostType.text, None),
+        ("Celebrating 1000+ active members milestone!", PostType.achievement, None),
+        ("New analytics dashboard for community admins.", PostType.text, None),
+        ("Safety first: how to report concerning content.", PostType.text, None),
+        ("Thank you for making ThriveHub amazing.", PostType.text, None),
+        ("Upcoming maintenance window: Sunday 2am UTC.", PostType.text, None),
+        ("Feature request thread — what do you want next?", PostType.text, None),
+    ],
+    "ops@thrivehub.com": [
+        ("Weekly ops report: 99.9% uptime this month.", PostType.text, None),
+        ("New moderation queue improvements live.", PostType.text, None),
+        ("Onboarding flow updated for smoother signup.", PostType.text, None),
+        ("Data backup verification complete.", PostType.text, None),
+        ("Community health metrics looking strong.", PostType.text, None),
+        ("Support ticket response time under 2 hours.", PostType.text, None),
+        ("Infrastructure scaling for peak traffic.", PostType.text, None),
+        ("Security audit passed with flying colors.", PostType.achievement, None),
+        ("Ops team hiring — join us!", PostType.text, None),
+        ("Automated spam detection improved.", PostType.text, None),
+        ("Partner integration testing in progress.", PostType.text, None),
+        ("Grateful for this ops community.", PostType.text, None),
+    ],
+}
+
+COMMENT_TEMPLATES = [
+    "Love this! 🔥",
+    "So inspiring, thanks for sharing.",
+    "Count me in!",
+    "This is exactly what I needed today.",
+    "Great work! Keep it up.",
+    "How do I get started?",
+    "Amazing content as always.",
+    "Shared with my friends!",
+    "Can't wait for the next one.",
+    "This made my day.",
+    "Totally agree with this.",
+    "Following for more updates!",
+    "What camera/settings did you use?",
+    "Recipe please!",
+    "Adding this to my bucket list.",
+]
+
+
+def _seed_post_engagement(db: Session, tenant: Tenant, users: list[User]) -> None:
+    """Ensure 10+ posts per demo user with varied reactions, comments, and shares."""
+    by_email = {u.email: u for u in users}
+    member_users = [u for u in users if u.email.endswith("@thrivehub.com")]
+
+    all_posts: list[Post] = []
+    for email, templates in EXTRA_POSTS.items():
+        author = by_email.get(email)
+        if not author:
+            continue
+        for body, ptype, img in templates:
+            p = _ensure_post(db, tenant, author, body, ptype, img)
+            if p:
+                all_posts.append(p)
+
+    mayank = None
+    for u in users:
+        prof = db.query(Profile).filter(Profile.user_id == u.id, Profile.username == "mayank").first()
+        if prof:
+            mayank = u
+            break
+    if mayank:
+        mayank_posts = [
+            ("Weekend salsa social — best crowd energy all year!", PostType.image, "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800"),
+            ("Photography tip: shoot during golden hour for magic light.", PostType.text, None),
+            ("Coastal trail run at dawn. 10 miles of pure bliss.", PostType.image, IMG_HIKING),
+            ("Building bridges between dance, fitness, and community.", PostType.text, None),
+            ("New workshop series launching next month!", PostType.event, None),
+            ("Grateful for everyone who showed up to the hike.", PostType.text, None),
+            ("Music and movement — the perfect combination.", PostType.image, IMG_MUSIC_ACOUSTIC),
+            ("Adventure awaits those who seek it.", PostType.text, None),
+            ("Collaborating with local artists on a community mural.", PostType.text, None),
+            ("Morning meditation before the chaos begins.", PostType.text, None),
+            ("Dance floor is my happy place.", PostType.text, None),
+            ("Sunset shoot at Twin Peaks — portfolio update soon.", PostType.image, "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800"),
+        ]
+        for body, ptype, img in mayank_posts:
+            p = _ensure_post(db, tenant, mayank, body, ptype, img)
+            if p:
+                all_posts.append(p)
+
+    existing_posts = db.query(Post).filter(Post.tenant_id == tenant.id).all()
+    post_ids_seen = {p.id for p in all_posts}
+    for p in existing_posts:
+        if p.id not in post_ids_seen:
+            all_posts.append(p)
+
+    if not all_posts or len(member_users) < 2:
+        return
+
+    for i, post in enumerate(all_posts):
+        other_users = [u for u in member_users if u.id != post.author_id]
+        if not other_users:
+            continue
+
+        num_reactions = 2 + (i % 5)
+        for j in range(num_reactions):
+            reactor = other_users[(i + j) % len(other_users)]
+            rtype = "dislike" if (i + j) % 7 == 0 else "like"
+            _ensure_reaction(db, reactor.id, post.id, rtype)
+
+        num_comments = 1 + (i % 4)
+        for j in range(num_comments):
+            commenter = other_users[(i + j + 1) % len(other_users)]
+            body = COMMENT_TEMPLATES[(i + j) % len(COMMENT_TEMPLATES)]
+            _ensure_comment(db, post.id, commenter.id, body)
+
+        num_shares = 1 + (i % 3)
+        for j in range(num_shares):
+            sharer = other_users[(i + j + 2) % len(other_users)]
+            exists = db.query(Share).filter(Share.post_id == post.id, Share.user_id == sharer.id).first()
+            if not exists:
+                db.add(Share(user_id=sharer.id, post_id=post.id))
+
+    db.flush()
+
+
+def _ensure_comment(db: Session, post_id: str, author_id: str, body: str) -> None:
+    exists = db.query(Comment).filter(
+        Comment.post_id == post_id, Comment.author_id == author_id, Comment.body == body,
+    ).first()
+    if not exists:
+        db.add(Comment(post_id=post_id, author_id=author_id, body=body))
+
+
+def _ensure_reaction(db: Session, actor_id: str, post_id: str, reaction_type: str = "like") -> None:
+    exists = db.query(Reaction).filter(
+        Reaction.actor_id == actor_id, Reaction.post_id == post_id,
+    ).first()
+    if not exists:
+        db.add(Reaction(actor_id=actor_id, post_id=post_id, reaction_type=reaction_type))
+
+
+def _ensure_follow(db: Session, follower_id: str, following_id: str) -> None:
+    exists = db.query(Follow).filter(
+        Follow.follower_id == follower_id, Follow.following_id == following_id,
+    ).first()
+    if not exists:
+        db.add(Follow(follower_id=follower_id, following_id=following_id, status=FollowStatus.accepted))
+
+
 def seed_platform_masters(db: Session, tenant_id: str) -> dict:
     """Upsert all platform masters; returns code→id map."""
     master_map: dict[str, str] = {}
@@ -711,7 +1052,11 @@ def seed_platform_masters(db: Session, tenant_id: str) -> dict:
         m = _upsert_master(db, tenant_id, "community_category", code, label, desc, i)
         master_map[f"community_category:{code}"] = m.id
 
-    reactions = [("like", "Like", "Appreciation"), ("celebrate", "Celebrate", "Achievement celebration")]
+    reactions = [
+        ("like", "Like", "Appreciation"),
+        ("dislike", "Dislike", "Not for me"),
+        ("celebrate", "Celebrate", "Achievement celebration"),
+    ]
     for i, (code, label, desc) in enumerate(reactions):
         m = _upsert_master(db, tenant_id, "reaction", code, label, desc, i)
         master_map[f"reaction:{code}"] = m.id
@@ -765,7 +1110,7 @@ def seed_demo_content(db: Session, tenant: Tenant, users: list[User], master_map
         (by_email.get("dancer@thrivehub.com"), "Dance Collective", "dance-collective",
          "Salsa, hip-hop, contemporary — all styles welcome!",
          "https://images.unsplash.com/photo-1504609773096-104ff2c73ba4?w=1200", "dance",
-         [by_email.get("mia@thrivehub.com")]),
+         [by_email.get("mia@thrivehub.com"), by_email.get("ananya@thrivehub.com")]),
         (by_email.get("comedian@thrivehub.com"), "Open Mic Society", "open-mic-society",
          "Standup, improv, and comedy writing workshops",
          "https://images.unsplash.com/photo-1585699324551-f6c309eedeca?w=1200", "comedy",
@@ -859,13 +1204,19 @@ def seed_demo_content(db: Session, tenant: Tenant, users: list[User], master_map
         (by_email.get("comedian@thrivehub.com"), by_email.get("alex@thrivehub.com")),
         (by_email.get("lens@thrivehub.com"), by_email.get("art@thrivehub.com")),
         (by_email.get("chef@thrivehub.com"), by_email.get("dancer@thrivehub.com")),
+        (by_email.get("ananya@thrivehub.com"), by_email.get("dancer@thrivehub.com")),
+        (by_email.get("ananya@thrivehub.com"), by_email.get("riley@thrivehub.com")),
+        (by_email.get("ananya@thrivehub.com"), by_email.get("mia@thrivehub.com")),
+        (by_email.get("dancer@thrivehub.com"), by_email.get("ananya@thrivehub.com")),
+        (by_email.get("alex@thrivehub.com"), by_email.get("ananya@thrivehub.com")),
+        (by_email.get("chef@thrivehub.com"), by_email.get("ananya@thrivehub.com")),
+        (by_email.get("riley@thrivehub.com"), by_email.get("ananya@thrivehub.com")),
+        (by_email.get("lens@thrivehub.com"), by_email.get("ananya@thrivehub.com")),
     ]
     for follower, following in follow_pairs:
         if not follower or not following:
             continue
-        exists = db.query(Follow).filter(Follow.follower_id == follower.id, Follow.following_id == following.id).first()
-        if not exists:
-            db.add(Follow(follower_id=follower.id, following_id=following.id, status=FollowStatus.accepted))
+        _ensure_follow(db, follower.id, following.id)
 
     # Comments & reactions on first post
     if posts:
@@ -904,6 +1255,72 @@ def seed_demo_content(db: Session, tenant: Tenant, users: list[User], master_map
                             title="Event reminder", body="Weekend Trail Run is coming up in 7 days"))
 
 
+def seed_ananya_social(db: Session, tenant: Tenant, by_email: dict[str, User]) -> None:
+    """Idempotent likes, comments, and cross-post engagement for @ananya."""
+    ananya = by_email.get("ananya@thrivehub.com")
+    if not ananya:
+        return
+
+    ananya_posts = (
+        db.query(Post)
+        .filter(Post.tenant_id == tenant.id, Post.author_id == ananya.id)
+        .order_by(Post.created_at)
+        .all()
+    )
+    if not ananya_posts:
+        return
+
+    # Reactions on Ananya's posts from other demo users
+    reactor_emails = [
+        "dancer@thrivehub.com", "alex@thrivehub.com", "mia@thrivehub.com",
+        "riley@thrivehub.com", "chef@thrivehub.com", "lens@thrivehub.com",
+        "jordan@thrivehub.com", "art@thrivehub.com",
+    ]
+    for i, post in enumerate(ananya_posts):
+        for reactor_email in reactor_emails[:4 + (i % 4)]:
+            reactor = by_email.get(reactor_email)
+            if reactor and reactor.id != ananya.id:
+                rtype = "celebrate" if reactor_email in ("alex@thrivehub.com", "dancer@thrivehub.com") else "like"
+                _ensure_reaction(db, reactor.id, post.id, rtype)
+
+    # Comments on Ananya's posts
+    commenters = [
+        ("dancer@thrivehub.com", "Love this energy! So proud to co-host with you 💃"),
+        ("riley@thrivehub.com", "Your wellness community is inspiring — count me in for the retreat!"),
+        ("mia@thrivehub.com", "That acoustic jam was magic. Let's plan another one soon!"),
+        ("alex@thrivehub.com", "This is what community building looks like. Well done!"),
+        ("chef@thrivehub.com", "That dosa batter tip in your story was chef's kiss 👩‍🍳"),
+        ("lens@thrivehub.com", "Beautiful festival portraits — great eye for light!"),
+        ("jordan@thrivehub.com", "Would love to bring the football crew to your next wellness meetup!"),
+        ("art@thrivehub.com", "Movement and art — kindred spirits. Your collective is amazing."),
+    ]
+    for i, post in enumerate(ananya_posts[:8]):
+        email, body = commenters[i % len(commenters)]
+        commenter = by_email.get(email)
+        if commenter:
+            _ensure_comment(db, post.id, commenter.id, body)
+
+    # Ananya engages with other users' posts
+    other_posts = (
+        db.query(Post)
+        .filter(Post.tenant_id == tenant.id, Post.author_id != ananya.id)
+        .order_by(Post.created_at)
+        .limit(10)
+        .all()
+    )
+    ananya_comments = [
+        "This is so inspiring — love seeing your progress!",
+        "Beautiful shot! The light in this is incredible.",
+        "Count me in next time — this looks amazing!",
+        "Your passion really shines through. Keep it up!",
+        "What a wonderful community moment. Thanks for sharing!",
+    ]
+    for i, post in enumerate(other_posts):
+        _ensure_reaction(db, ananya.id, post.id, "like" if i % 3 else "celebrate")
+        if i < 5:
+            _ensure_comment(db, post.id, ananya.id, ananya_comments[i % len(ananya_comments)])
+
+
 def seed_database():
     db = SessionLocal()
     try:
@@ -921,6 +1338,7 @@ def seed_database():
         seed_demo_content(db, tenant, users, master_map)
         seed_rich_profiles(db, tenant.id, master_map, users)
         seed_supplemental(db, tenant=tenant, users=users, master_map=master_map)
+        _seed_post_engagement(db, tenant, users)
         db.commit()
         print("Database seeded successfully.")
     finally:
@@ -945,6 +1363,9 @@ def seed_supplemental(db: Session, tenant=None, users=None, master_map=None):
     fix_broken_images(db, tenant.id)
     seed_demo_content(db, tenant, users, master_map)
     seed_rich_profiles(db, tenant.id, master_map, users)
+    by_email = {u.email: u for u in users}
+    seed_ananya_social(db, tenant, by_email)
+    _seed_post_engagement(db, tenant, users)
 
     if not db.query(SubscriptionTier).filter(SubscriptionTier.tenant_id == tenant.id).first():
         tiers = [

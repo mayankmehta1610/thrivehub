@@ -195,6 +195,7 @@ class Post(Base):
     audience: Mapped[PostAudience] = mapped_column(Enum(PostAudience), default=PostAudience.public)
     status: Mapped[str] = mapped_column(String(32), default="published")
     image_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    comments_enabled: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
@@ -206,6 +207,7 @@ class Post(Base):
         cascade="all, delete-orphan",
         foreign_keys="Reaction.post_id",
     )
+    shares: Mapped[list["Share"]] = relationship(back_populates="post", cascade="all, delete-orphan")
 
 
 class Comment(Base):
@@ -244,6 +246,22 @@ class Reaction(Base):
     __table_args__ = (
         UniqueConstraint("actor_id", "post_id", name="uq_actor_post_reaction"),
         UniqueConstraint("actor_id", "comment_id", name="uq_actor_comment_reaction"),
+    )
+
+
+class Share(Base):
+    __tablename__ = "shares"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    post_id: Mapped[str] = mapped_column(ForeignKey("posts.id"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+    user: Mapped["User"] = relationship()
+    post: Mapped["Post"] = relationship(back_populates="shares")
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "post_id", name="uq_user_post_share"),
     )
 
 

@@ -134,6 +134,9 @@ All demo accounts use password **`demo1234`** unless noted. Admin accounts use *
 | lens@thrivehub.com | demo1234 | Member | Street photographer |
 | riley@thrivehub.com | demo1234 | Member | CrossFit coach |
 | art@thrivehub.com | demo1234 | Member | Digital artist |
+| ananya@thrivehub.com | demo1234 | Member | Dance, yoga & community builder |
+
+**Profile:** [@ananya](/profile/ananya)
 
 **Admin portal:** Sign in as `admin@thrivehub.com` or `ops@thrivehub.com`, then open **Settings** (gear icon) → `/admin`.
 
