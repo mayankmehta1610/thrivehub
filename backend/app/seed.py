@@ -392,6 +392,30 @@ def fix_broken_images(db: Session, tenant_id: str) -> None:
             hero.label = fixed
 
 
+THEME_CONFIG = {
+    "primary_color": "#7C3AED",
+    "secondary_color": "#D946EF",
+    "accent_color": "#F43F5E",
+}
+
+
+def refresh_platform_theme(db: Session, tenant_id: str) -> None:
+    """Force platform theme colours to the current palette on every startup.
+
+    seed_platform_masters only runs on a fresh DB, so existing/production
+    databases would otherwise keep stale colours. This idempotently updates
+    the platform_config colour rows so redeploys pick up theme changes.
+    """
+    for code, value in THEME_CONFIG.items():
+        row = db.query(MasterValue).filter(
+            MasterValue.tenant_id == tenant_id,
+            MasterValue.master_type == "platform_config",
+            MasterValue.code == code,
+        ).first()
+        if row and row.label != value:
+            row.label = value
+
+
 def _upsert_master(db: Session, tenant_id: str, mtype: str, code: str, label: str,
                    desc: str | None, sort_order: int, metadata: dict | None = None) -> MasterValue:
     meta_str = json.dumps(metadata) if metadata else None
@@ -986,8 +1010,8 @@ def seed_platform_masters(db: Session, tenant_id: str) -> dict:
         ("app_name", "ThriveHub", "Community platform brand name"),
         ("tagline", "Where skills, sports & adventures come alive", "Hero tagline"),
         ("hero_image", HERO_IMAGE, None),
-        ("primary_color", "#6366F1", None),
-        ("secondary_color", "#8B5CF6", None),
+        ("primary_color", "#7C3AED", None),
+        ("secondary_color", "#D946EF", None),
         ("accent_color", "#F43F5E", None),
         ("hero_subtitle", "Join vibrant communities for dance, comedy, sports, music & more", None),
         ("image_max_bytes", "512000", "Max image upload size in bytes (500 KB)"),
@@ -1363,6 +1387,7 @@ def seed_supplemental(db: Session, tenant=None, users=None, master_map=None):
 
     users = users or seed_demo_users(db, tenant.id)
     fix_broken_images(db, tenant.id)
+    refresh_platform_theme(db, tenant.id)
     seed_demo_content(db, tenant, users, master_map)
     seed_rich_profiles(db, tenant.id, master_map, users)
     by_email = {u.email: u for u in users}

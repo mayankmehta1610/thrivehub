@@ -35,14 +35,14 @@ export default function Notifications() {
           <h1 className="text-2xl font-bold gradient-text flex items-center gap-2">
             <Bell className="w-7 h-7" /> Notifications
           </h1>
-          <button onClick={markAllRead} className="flex items-center gap-1 text-sm text-indigo-600 hover:underline">
+          <button onClick={markAllRead} className="flex items-center gap-1 text-sm text-violet-600 hover:underline">
             <CheckCheck className="w-4 h-4" /> Mark all read
           </button>
         </div>
 
         <div className="space-y-2 mb-8">
           {items.map((n) => (
-            <div key={n.id} className={`bg-white rounded-xl p-4 border ${n.read_at ? 'border-slate-100' : 'border-indigo-200 bg-indigo-50/30'}`}>
+            <div key={n.id} className={`bg-white rounded-xl p-4 border ${n.read_at ? 'border-slate-100' : 'border-violet-200 bg-violet-50/30'}`}>
               <p className="font-medium">{n.title}</p>
               <p className="text-sm text-slate-500">{n.body}</p>
               <p className="text-xs text-slate-400 mt-1">{new Date(n.created_at).toLocaleString()}</p>

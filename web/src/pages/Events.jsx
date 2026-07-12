@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Calendar, MapPin, Users, Plus } from 'lucide-react'
 import api from '../api/client'
 import Navbar from '../components/Navbar'
@@ -10,6 +11,7 @@ import { AUTH_MESSAGES } from '../utils/authMessages'
 
 export default function Events() {
   const requireAuth = useRequireAuth()
+  const navigate = useNavigate()
   const [config, setConfig] = useState(null)
   const [events, setEvents] = useState([])
   const [total, setTotal] = useState(0)
@@ -39,7 +41,8 @@ export default function Events() {
     load()
   }
 
-  const handleRegister = async (id) => {
+  const handleRegister = async (e, id) => {
+    e.stopPropagation()
     if (!requireAuth(AUTH_MESSAGES.registerEvent)) return
     await api.registerEvent(id)
     load()
@@ -58,7 +61,11 @@ export default function Events() {
 
         <div className="grid md:grid-cols-2 gap-4 mb-8">
           {events.map((ev) => (
-            <div key={ev.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 card-hover">
+            <div
+              key={ev.id}
+              onClick={() => navigate(`/events/${ev.id}`)}
+              className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 card-hover cursor-pointer"
+            >
               {isValidImageUrl(ev.image_url) && (
                 <SafeImage src={ev.image_url} alt="" className="w-full h-40 object-cover" hideOnError />
               )}
@@ -69,8 +76,8 @@ export default function Events() {
                 </p>
                 {ev.venue && <p className="text-sm text-slate-500 flex items-center gap-1"><MapPin className="w-4 h-4" />{ev.venue}</p>}
                 <div className="flex items-center justify-between mt-3">
-                  <span className="text-sm text-indigo-500 flex items-center gap-1"><Users className="w-4 h-4" />{ev.participant_count}{ev.capacity ? `/${ev.capacity}` : ''}</span>
-                  <button onClick={() => handleRegister(ev.id)} className="px-4 py-1.5 rounded-xl bg-teal-500 text-white text-sm font-medium">Register</button>
+                  <span className="text-sm text-fuchsia-500 flex items-center gap-1"><Users className="w-4 h-4" />{ev.participant_count}{ev.capacity ? `/${ev.capacity}` : ''}</span>
+                  <button onClick={(e) => handleRegister(e, ev.id)} className="px-4 py-1.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium transition-colors">Register</button>
                 </div>
               </div>
             </div>
@@ -95,6 +102,7 @@ export default function Events() {
           onPageChange={setPage}
           onSortChange={(k, o) => { setSortBy(k); setSortOrder(o) }}
           onSearchChange={(s) => { setSearch(s); setPage(1) }}
+          onRowClick={(row) => navigate(`/events/${row.id}`)}
         />
       </div>
 

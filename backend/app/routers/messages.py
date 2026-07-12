@@ -61,8 +61,38 @@ def list_conversations(
     return paginated(out, total, params, total_pages)
 
 
+def _conversation_out(conv: Conversation, user_id: str) -> ConversationOut:
+    participants = [_author_brief(p.user) for p in conv.participants if p.user_id != user_id]
+    return ConversationOut(
+        id=conv.id,
+        type=conv.type.value,
+        title=conv.title,
+        updated_at=conv.updated_at,
+        participants=[p for p in participants if p],
+    )
+
+
 @router.post("/conversations", response_model=ConversationOut, status_code=201)
 def create_conversation(payload: ConversationCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    participant_ids = set(payload.participant_ids + [user.id])
+
+    # Reuse an existing direct conversation between exactly these two users.
+    if payload.type == "direct" and len(participant_ids) == 2:
+        others = [pid for pid in participant_ids if pid != user.id]
+        if others:
+            other_id = others[0]
+            existing = (
+                db.query(Conversation)
+                .join(ConversationParticipant)
+                .filter(Conversation.type == ConversationType.direct, ConversationParticipant.user_id == user.id)
+                .options(joinedload(Conversation.participants).joinedload(ConversationParticipant.user).joinedload(User.profile))
+                .all()
+            )
+            for conv in existing:
+                pids = {p.user_id for p in conv.participants}
+                if pids == participant_ids:
+                    return _conversation_out(conv, user.id)
+
     conv = Conversation(
         tenant_id=user.tenant_id,
         type=ConversationType(payload.type),
@@ -71,11 +101,11 @@ def create_conversation(payload: ConversationCreate, user: User = Depends(get_cu
     )
     db.add(conv)
     db.flush()
-    participant_ids = set(payload.participant_ids + [user.id])
     for pid in participant_ids:
         db.add(ConversationParticipant(conversation_id=conv.id, user_id=pid))
     db.commit()
-    return ConversationOut(id=conv.id, type=conv.type.value, title=conv.title, updated_at=conv.updated_at, participants=[])
+    db.refresh(conv)
+    return _conversation_out(conv, user.id)
 
 
 @router.get("/conversations/{conversation_id}/messages", response_model=dict)

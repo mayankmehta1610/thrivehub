@@ -28,11 +28,11 @@ function UserRow({ user, subtitle, children }) {
         <SafeImage
           src={user.avatar_url}
           alt=""
-          className="w-10 h-10 rounded-full object-cover ring-2 ring-indigo-50"
+          className="w-10 h-10 rounded-full object-cover ring-2 ring-violet-50"
         />
       </Link>
       <div className="flex-1 min-w-0">
-        <Link to={`/profile/${user.username}`} className="font-semibold text-slate-800 hover:text-indigo-600">
+        <Link to={`/profile/${user.username}`} className="font-semibold text-slate-800 hover:text-violet-600">
           {user.display_name || user.username}
         </Link>
         <p className="text-xs text-slate-400">@{user.username}{subtitle ? ` · ${subtitle}` : ''}</p>
@@ -79,7 +79,7 @@ export default function EngagementModal({ postId, type, onClose }) {
   const icons = {
     likes: <Heart className="w-5 h-5 text-pink-500" />,
     dislikes: <ThumbsDown className="w-5 h-5 text-slate-500" />,
-    comments: <MessageCircle className="w-5 h-5 text-indigo-500" />,
+    comments: <MessageCircle className="w-5 h-5 text-violet-500" />,
     shares: <Share2 className="w-5 h-5 text-teal-500" />,
   }
 

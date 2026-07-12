@@ -13,6 +13,7 @@ import Profile from './pages/Profile'
 import Communities from './pages/Communities'
 import CommunityDetail from './pages/CommunityDetail'
 import Events from './pages/Events'
+import EventDetail from './pages/EventDetail'
 import Messages from './pages/Messages'
 import Notifications from './pages/Notifications'
 import SearchPage from './pages/SearchPage'
@@ -46,6 +47,7 @@ function AppRoutes() {
       <Route path="/communities" element={<PrivateRoute><Communities /></PrivateRoute>} />
       <Route path="/communities/:slug" element={<CommunityDetail />} />
       <Route path="/events" element={<PrivateRoute><Events /></PrivateRoute>} />
+      <Route path="/events/:id" element={<EventDetail />} />
       <Route path="/messages" element={<PrivateRoute><Messages /></PrivateRoute>} />
       <Route path="/notifications" element={<PrivateRoute><Notifications /></PrivateRoute>} />
       <Route path="/search" element={<PrivateRoute><SearchPage /></PrivateRoute>} />
@@ -63,7 +65,7 @@ export default function App() {
           position="top-center"
           toastOptions={{
             duration: 4000,
-            style: { background: '#6366F1', color: '#fff', fontSize: '14px' },
+            style: { background: '#7C3AED', color: '#fff', fontSize: '14px' },
             error: { iconTheme: { primary: '#F43F5E', secondary: '#fff' } },
           }}
         />

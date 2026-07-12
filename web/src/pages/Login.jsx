@@ -108,13 +108,13 @@ export default function Login() {
       <div className="relative w-full max-w-md bg-white rounded-lg shadow-xl p-8 border border-slate-200">
         {(waking || !apiReady) && status !== 'submitting' && (
           <div className="absolute inset-0 z-30 flex flex-col items-center justify-center rounded-lg bg-white/98 backdrop-blur-sm">
-            <Loader2 className="w-12 h-12 animate-spin text-indigo-500" />
+            <Loader2 className="w-12 h-12 animate-spin text-violet-500" />
             <p className="mt-4 text-slate-900 font-bold text-lg">{wakeMessage}</p>
             <p className="mt-2 text-slate-500 text-sm text-center px-6">
               Waking up server — free tier can take up to 90 seconds
             </p>
             {retryIn > 0 && (
-              <p className="mt-2 text-indigo-600 text-sm">Retrying in {retryIn}s...</p>
+              <p className="mt-2 text-violet-600 text-sm">Retrying in {retryIn}s...</p>
             )}
           </div>
         )}
@@ -150,7 +150,7 @@ export default function Login() {
               onChange={(e) => setEmail(e.target.value)}
               required
               disabled={busy || !apiReady}
-              className="w-full px-4 py-2.5 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 disabled:opacity-60"
+              className="w-full px-4 py-2.5 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-violet-400 disabled:opacity-60"
             />
           </div>
           <div>
@@ -161,7 +161,7 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
               required
               disabled={busy || !apiReady}
-              className="w-full px-4 py-2.5 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 disabled:opacity-60"
+              className="w-full px-4 py-2.5 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-violet-400 disabled:opacity-60"
             />
           </div>
           <button
@@ -175,7 +175,7 @@ export default function Login() {
         </form>
 
         <p className="text-center text-sm text-slate-500 mt-6">
-          No account? <Link to="/register" className="text-indigo-600 font-medium hover:text-indigo-700">Join free</Link>
+          No account? <Link to="/register" className="text-violet-600 font-medium hover:text-violet-700">Join free</Link>
         </p>
         <p className="text-center text-xs text-slate-400 mt-2">Demo: alex@thrivehub.com / demo1234</p>
       </div>

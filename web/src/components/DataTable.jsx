@@ -11,6 +11,7 @@ export default function DataTable({
   onPageChange,
   onSortChange,
   onSearchChange,
+  onRowClick,
   sortBy,
   sortOrder = 'desc',
   searchPlaceholder = 'Search...',
@@ -87,7 +88,7 @@ export default function DataTable({
           <input
             type="text"
             placeholder={searchPlaceholder}
-            className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-400"
             onChange={(e) => handleSearch(e.target.value)}
           />
         </div>
@@ -101,7 +102,7 @@ export default function DataTable({
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className="px-4 py-3 font-semibold text-slate-600 cursor-pointer select-none hover:text-indigo-600"
+                  className="px-4 py-3 font-semibold text-slate-600 cursor-pointer select-none hover:text-violet-600"
                   onClick={() => col.sortable !== false && handleSort(col.key)}
                 >
                   <span className="inline-flex items-center gap-1">
@@ -122,15 +123,24 @@ export default function DataTable({
                 </td>
               </tr>
             ) : (
-              pageData.map((row, i) => (
-                <tr key={row.id || i} className="border-t border-slate-50 hover:bg-indigo-50/30">
-                  {columns.map((col) => (
-                    <td key={col.key} className="px-4 py-3">
-                      {col.render ? col.render(row) : row[col.key]}
-                    </td>
-                  ))}
-                </tr>
-              ))
+              pageData.map((row, i) => {
+                const clickable = typeof onRowClick === 'function'
+                return (
+                  <tr
+                    key={row.id || i}
+                    onClick={clickable ? () => onRowClick(row) : undefined}
+                    className={`border-t border-slate-50 transition-colors ${
+                      clickable ? 'cursor-pointer hover:bg-fuchsia-50' : 'hover:bg-slate-50'
+                    }`}
+                  >
+                    {columns.map((col) => (
+                      <td key={col.key} className="px-4 py-3">
+                        {col.render ? col.render(row) : row[col.key]}
+                      </td>
+                    ))}
+                  </tr>
+                )
+              })
             )}
           </tbody>
         </table>

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import {
   MapPin, Globe, UserPlus, UserMinus, Ban, VolumeX, Flag, Edit,
-  BadgeCheck, Camera, X, Users, FileText,
+  BadgeCheck, Camera, X, Users, FileText, MessageCircle,
 } from 'lucide-react'
 import api from '../api/client'
 import Navbar from '../components/Navbar'
@@ -54,6 +55,7 @@ function PhotoLightbox({ photo, onClose }) {
 
 export default function Profile() {
   const { username } = useParams()
+  const navigate = useNavigate()
   const { user: currentUser } = useAuth()
   const requireAuth = useRequireAuth()
   const [config, setConfig] = useState(null)
@@ -154,7 +156,13 @@ export default function Profile() {
     })
     setShowReport(false)
     setReportReason('')
-    alert('Report submitted')
+    toast.success('Report submitted. Our team will review it.')
+  }
+
+  const handleMessage = async () => {
+    if (!requireAuth(AUTH_MESSAGES.sendMessage)) return
+    if (!profile?.user_id) return
+    navigate(`/messages?to=${profile.user_id}`)
   }
 
   const saveProfile = async () => {
@@ -261,6 +269,10 @@ export default function Profile() {
                       {following
                         ? <><UserMinus className="w-4 h-4" /> Unfollow</>
                         : <><UserPlus className="w-4 h-4" /> Follow</>}
+                    </button>
+                    <button onClick={handleMessage} title="Message"
+                      className="p-2 rounded-lg border bg-white text-slate-500 border-slate-200 hover:bg-slate-50">
+                      <MessageCircle className="w-4 h-4" />
                     </button>
                     <button onClick={handleBlock} title="Block"
                       className={`p-2 rounded-lg border ${blocked ? 'bg-red-50 text-red-600 border-red-200' : 'bg-white text-slate-500 border-slate-200'}`}>

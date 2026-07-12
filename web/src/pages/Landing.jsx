@@ -17,8 +17,8 @@ const FALLBACK_CONFIG = {
   tagline: 'Where skills, sports & adventures come alive',
   hero_image: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1600&q=80&auto=format&fit=crop',
   hero_subtitle: 'Join vibrant communities for dance, comedy, sports, music & more',
-  primary_color: '#6366F1',
-  secondary_color: '#8B5CF6',
+  primary_color: '#7C3AED',
+  secondary_color: '#D946EF',
   accent_color: '#F43F5E',
   features: [
     { code: 'profiles', label: 'Rich Profiles', description: 'Showcase skills, sports and achievements' },
@@ -106,10 +106,10 @@ export default function Landing() {
           className="absolute inset-0 w-full h-full object-cover"
           fallback={FALLBACK_CONFIG.hero_image || DEFAULT_PLACEHOLDER}
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-indigo-950/95 via-indigo-900/80 to-violet-900/50" />
+        <div className="absolute inset-0 bg-gradient-to-r from-violet-950/95 via-fuchsia-900/70 to-rose-800/45" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-24 md:py-32 w-full">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-white/10 backdrop-blur-sm text-sm font-medium text-indigo-200 mb-6 animate-fade-in border border-white/10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-white/10 backdrop-blur-sm text-sm font-medium text-violet-200 mb-6 animate-fade-in border border-white/10">
               <TrendingUp className="w-4 h-4" />
               {stats.members ? `${stats.members}+ members thriving` : 'Join the community'}
             </div>
@@ -156,7 +156,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-12">
             <div>
-              <p className="text-indigo-600 font-semibold text-sm uppercase tracking-wider mb-2">Discover</p>
+              <p className="text-violet-600 font-semibold text-sm uppercase tracking-wider mb-2">Discover</p>
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">
                 Explore your passion
               </h2>
@@ -164,7 +164,7 @@ export default function Landing() {
                 Dance, comedy, sports, adventure & more — find your tribe
               </p>
             </div>
-            <AuthLink to="/feed" message={AUTH_MESSAGES.default} className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors hidden md:block">
+            <AuthLink to="/feed" message={AUTH_MESSAGES.default} className="text-violet-600 font-semibold hover:text-violet-700 transition-colors hidden md:block">
               View all categories →
             </AuthLink>
           </div>
@@ -181,7 +181,7 @@ export default function Landing() {
                   alt={cat.label}
                   className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-indigo-950/90 via-indigo-900/30 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-violet-950/90 via-fuchsia-900/30 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-4">
                   <h3 className="font-semibold text-white text-base leading-tight">{cat.label}</h3>
                   {cat.description && (
@@ -200,11 +200,11 @@ export default function Landing() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
             <div className="flex items-end justify-between mb-10">
               <div>
-                <p className="text-indigo-600 font-semibold text-sm uppercase tracking-wider mb-2">Communities</p>
+                <p className="text-violet-600 font-semibold text-sm uppercase tracking-wider mb-2">Communities</p>
                 <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Featured groups</h2>
                 <p className="text-slate-500 mt-1">Join groups built around what you love</p>
               </div>
-              <AuthLink to="/communities" message={AUTH_MESSAGES.joinCommunity} className="text-indigo-600 font-semibold hover:text-indigo-700 hidden sm:block">
+              <AuthLink to="/communities" message={AUTH_MESSAGES.joinCommunity} className="text-violet-600 font-semibold hover:text-violet-700 hidden sm:block">
                 See all →
               </AuthLink>
             </div>
@@ -223,7 +223,7 @@ export default function Landing() {
                     <h3 className="font-semibold text-lg text-slate-900">{c.name}</h3>
                     <p className="text-slate-500 text-sm line-clamp-2 mt-1.5 leading-relaxed">{c.description}</p>
                     <p className="text-slate-600 text-sm font-medium mt-3 flex items-center gap-1.5">
-                      <Users className="w-4 h-4 text-indigo-600" /> {c.member_count} members
+                      <Users className="w-4 h-4 text-violet-600" /> {c.member_count} members
                     </p>
                   </div>
                 </AuthLink>
@@ -238,7 +238,7 @@ export default function Landing() {
         <section className="py-20 md:py-28 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
             <div className="mb-10">
-              <p className="text-indigo-600 font-semibold text-sm uppercase tracking-wider mb-2">Events</p>
+              <p className="text-violet-600 font-semibold text-sm uppercase tracking-wider mb-2">Events</p>
               <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Upcoming near you</h2>
               <p className="text-slate-500 mt-1">Workshops, meetups, and tournaments</p>
             </div>
@@ -250,7 +250,7 @@ export default function Landing() {
                 >
                   <div className="h-44 relative">
                     <SafeImage src={e.image_url} alt={e.title} className="w-full h-full object-cover" />
-                    <div className="absolute top-3 left-3 px-2.5 py-1 rounded bg-indigo-600/90 text-white text-xs font-semibold">
+                    <div className="absolute top-3 left-3 px-2.5 py-1 rounded bg-violet-600/90 text-white text-xs font-semibold">
                       {formatEventDate(e.start_at)}
                     </div>
                   </div>
@@ -260,7 +260,7 @@ export default function Landing() {
                       <MapPin className="w-3.5 h-3.5 shrink-0" /> {e.venue}
                     </p>
                     <p className="text-slate-400 text-xs mt-2 line-clamp-2">{e.description}</p>
-                    <p className="text-indigo-600 text-sm font-medium mt-3">
+                    <p className="text-violet-600 text-sm font-medium mt-3">
                       {e.participant_count} registered
                     </p>
                     <button
@@ -283,7 +283,7 @@ export default function Landing() {
         <section className="py-20 md:py-28 bg-slate-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
             <div className="text-center mb-12">
-              <p className="text-indigo-600 font-semibold text-sm uppercase tracking-wider mb-2">Stories</p>
+              <p className="text-violet-600 font-semibold text-sm uppercase tracking-wider mb-2">Stories</p>
               <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Community moments</h2>
               <p className="text-slate-500 mt-2">Real stories from real members</p>
             </div>
@@ -311,7 +311,7 @@ export default function Landing() {
 
       {/* Sponsors */}
       {sponsors.length > 0 && (
-        <section className="py-14 bg-indigo-950">
+        <section className="py-14 bg-violet-950">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
             <p className="text-slate-400 text-center text-xs mb-8 uppercase tracking-widest">Community Partners</p>
             <div className="flex flex-wrap justify-center gap-6">
@@ -321,10 +321,10 @@ export default function Landing() {
                   href={s.link_url || '#'}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block w-64 rounded-lg overflow-hidden card-hover opacity-90 hover:opacity-100 border border-indigo-800"
+                  className="block w-64 rounded-lg overflow-hidden card-hover opacity-90 hover:opacity-100 border border-violet-800"
                 >
                   <SafeImage src={s.image_url} alt={s.sponsor_name} className="w-full h-32 object-cover" />
-                  <div className="bg-indigo-900 px-4 py-2.5 text-white text-sm font-medium text-center">
+                  <div className="bg-violet-900 px-4 py-2.5 text-white text-sm font-medium text-center">
                     {s.sponsor_name}
                   </div>
                 </a>
@@ -338,7 +338,7 @@ export default function Landing() {
       <section className="py-20 md:py-28 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-14">
-            <p className="text-indigo-600 font-semibold text-sm uppercase tracking-wider mb-2">Platform</p>
+            <p className="text-violet-600 font-semibold text-sm uppercase tracking-wider mb-2">Platform</p>
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">Why ThriveHub</h2>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -366,7 +366,7 @@ export default function Landing() {
           className="absolute inset-0 w-full h-full object-cover"
           fallback={FALLBACK_CONFIG.hero_image || DEFAULT_PLACEHOLDER}
         />
-        <div className="absolute inset-0 bg-indigo-950/85" />
+        <div className="absolute inset-0 bg-gradient-to-r from-violet-950/90 via-fuchsia-950/80 to-rose-900/70" />
         <div className="relative max-w-2xl mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 tracking-tight">
             Ready to thrive?

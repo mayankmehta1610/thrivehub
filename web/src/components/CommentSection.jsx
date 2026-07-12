@@ -100,7 +100,7 @@ export default function CommentSection({ postId, commentsEnabled = true, onComme
               placeholder="Write a comment..."
               rows={2}
               maxLength={MAX_LENGTH}
-              className="flex-1 px-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
+              className="flex-1 px-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 resize-none"
             />
             <button
               type="submit"
@@ -120,7 +120,7 @@ export default function CommentSection({ postId, commentsEnabled = true, onComme
           <button
             type="button"
             onClick={() => requireAuth(AUTH_MESSAGES.comment)}
-            className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
+            className="text-sm font-medium text-violet-600 hover:text-violet-700"
           >
             Sign in to comment
           </button>
@@ -139,14 +139,14 @@ export default function CommentSection({ postId, commentsEnabled = true, onComme
                 <SafeImage
                   src={c.author?.avatar_url}
                   alt=""
-                  className="w-9 h-9 rounded-full object-cover ring-2 ring-indigo-50 shrink-0"
+                  className="w-9 h-9 rounded-full object-cover ring-2 ring-violet-50 shrink-0"
                 />
               </Link>
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2 flex-wrap">
                   <Link
                     to={`/profile/${c.author?.username}`}
-                    className="text-sm font-semibold text-slate-800 hover:text-indigo-600"
+                    className="text-sm font-semibold text-slate-800 hover:text-violet-600"
                   >
                     {c.author?.display_name || c.author?.username}
                   </Link>

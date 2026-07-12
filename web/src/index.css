@@ -2,13 +2,14 @@
 @import "tailwindcss";
 
 :root {
-  --primary: #6366f1;
-  --primary-hover: #4f46e5;
-  --secondary: #8b5cf6;
+  --primary: #7c3aed;
+  --primary-hover: #6d28d9;
+  --secondary: #d946ef;
   --accent: #f43f5e;
   --accent-hover: #e11d48;
-  --teal: #14b8a6;
-  --surface: #f8fafc;
+  --teal: #06b6d4;
+  --amber: #f59e0b;
+  --surface: #faf5ff;
   --muted: #64748b;
 }
 
@@ -20,15 +21,24 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Vibrant violet → fuchsia → rose signature gradient */
 .gradient-hero {
-  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%);
+  background: linear-gradient(120deg, #7c3aed 0%, #d946ef 48%, #f43f5e 100%);
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(120deg, #7c3aed 0%, #d946ef 55%, #ec4899 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* Rich, colorful overlay for photos so imagery stays vivid but text is readable */
+.gradient-overlay {
+  background: linear-gradient(120deg, rgba(76, 29, 149, 0.92) 0%, rgba(192, 38, 211, 0.6) 55%, rgba(244, 63, 94, 0.4) 100%);
+}
+.gradient-overlay-bottom {
+  background: linear-gradient(to top, rgba(76, 29, 149, 0.92) 0%, rgba(124, 58, 237, 0.35) 45%, transparent 100%);
 }
 
 .accent-text {
@@ -73,7 +83,7 @@ body {
 }
 .card-hover:hover {
   transform: translateY(-4px);
-  box-shadow: 0 16px 40px rgba(99, 102, 241, 0.12);
+  box-shadow: 0 16px 40px rgba(217, 70, 239, 0.18);
 }
 
 .scrollbar-hide {
@@ -131,7 +141,7 @@ body {
 .profile-cover-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(99, 102, 241, 0.15) 0%, rgba(79, 70, 229, 0.55) 100%);
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.15) 0%, rgba(192, 38, 211, 0.55) 100%);
 }
 
 .profile-header-card {
@@ -205,7 +215,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%);
+  background: linear-gradient(120deg, #7c3aed 0%, #d946ef 48%, #f43f5e 100%);
   min-height: 100%;
   min-width: 100%;
 }
@@ -216,7 +226,7 @@ body {
   border-radius: 0.5rem;
   overflow: hidden;
   cursor: pointer;
-  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%);
+  background: linear-gradient(120deg, #7c3aed 0%, #d946ef 48%, #f43f5e 100%);
 }
 .photo-gallery-item img {
   width: 100%;

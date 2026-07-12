@@ -103,7 +103,7 @@ export default function Feed() {
             value={imageUrl}
             onChange={(e) => setImageUrl(e.target.value)}
             placeholder="Image URL (optional - Unsplash/Pexels)"
-            className="w-full mt-2 px-3 py-2 text-sm rounded-xl border border-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className="w-full mt-2 px-3 py-2 text-sm rounded-xl border border-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-400"
           />
           {uploadError && (
             <p className="mt-2 text-sm text-red-600">{uploadError}</p>

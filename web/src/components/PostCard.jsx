@@ -139,11 +139,11 @@ export default function PostCard({ post, onUpdate, isOwn = false }) {
             <SafeImage
               src={p.author?.avatar_url}
               alt=""
-              className="w-11 h-11 rounded-full object-cover ring-2 ring-indigo-100"
+              className="w-11 h-11 rounded-full object-cover ring-2 ring-violet-100"
             />
           </Link>
           <div className="flex-1">
-            <Link to={`/profile/${p.author?.username}`} className="font-semibold text-slate-800 hover:text-indigo-600">
+            <Link to={`/profile/${p.author?.username}`} className="font-semibold text-slate-800 hover:text-violet-600">
               {p.author?.display_name}
             </Link>
             <p className="text-xs text-slate-400">
@@ -212,7 +212,7 @@ export default function PostCard({ post, onUpdate, isOwn = false }) {
               if (!user && !requireAuth(AUTH_MESSAGES.comment)) return
               setShowComments(!showComments)
             }}
-            className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-indigo-500"
+            className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-violet-500"
           >
             <MessageCircle className="w-5 h-5" />
           </button>
@@ -223,7 +223,7 @@ export default function PostCard({ post, onUpdate, isOwn = false }) {
               else if (!user && !requireAuth(AUTH_MESSAGES.comment)) return
               else setShowComments(true)
             }}
-            className="text-slate-500 hover:text-indigo-500 -ml-3"
+            className="text-slate-500 hover:text-violet-500 -ml-3"
           >
             <span className="sr-only">Comments</span>
           </CountButton>

@@ -368,6 +368,10 @@ class ApiClient {
     return this.get('/events', params)
   }
 
+  getEvent(id) {
+    return this.get(`/events/${id}`)
+  }
+
   createEvent(data) {
     return this.post('/events', data)
   }
@@ -391,6 +395,12 @@ class ApiClient {
 
   createConversation(data) {
     return this.post('/messages/conversations', data)
+  }
+
+  // Start (or reuse) a direct conversation with a user, then return its id.
+  async startConversation(userId) {
+    const conv = await this.createConversation({ type: 'direct', participant_ids: [userId] })
+    return conv
   }
 
   // Notifications

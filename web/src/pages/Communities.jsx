@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Plus, Users } from 'lucide-react'
 import api from '../api/client'
 import Navbar from '../components/Navbar'
@@ -11,6 +11,7 @@ import { AUTH_MESSAGES } from '../utils/authMessages'
 
 export default function Communities() {
   const requireAuth = useRequireAuth()
+  const navigate = useNavigate()
   const [config, setConfig] = useState(null)
   const [communities, setCommunities] = useState([])
   const [total, setTotal] = useState(0)
@@ -61,7 +62,7 @@ export default function Communities() {
               <div className="p-4">
                 <h3 className="font-bold text-lg">{c.name}</h3>
                 <p className="text-sm text-slate-500 line-clamp-2">{c.description}</p>
-                <div className="flex items-center gap-1 mt-2 text-sm text-indigo-500">
+                <div className="flex items-center gap-1 mt-2 text-sm text-violet-500">
                   <Users className="w-4 h-4" /> {c.member_count} members
                 </div>
               </div>
@@ -86,6 +87,7 @@ export default function Communities() {
           onPageChange={setPage}
           onSortChange={(k, o) => { setSortBy(k); setSortOrder(o) }}
           onSearchChange={(s) => { setSearch(s); setPage(1) }}
+          onRowClick={(row) => navigate(`/communities/${row.slug}`)}
           searchPlaceholder="Search communities..."
         />
       </div>
@@ -96,7 +98,7 @@ export default function Communities() {
             <h2 className="text-xl font-bold">Create Community</h2>
             {['name', 'slug', 'description'].map((f) => (
               <input key={f} placeholder={f} value={form[f]} onChange={(e) => setForm({ ...form, [f]: e.target.value })}
-                required={f !== 'description'} className="w-full px-4 py-2 rounded-xl border focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+                required={f !== 'description'} className="w-full px-4 py-2 rounded-xl border focus:outline-none focus:ring-2 focus:ring-violet-400" />
             ))}
             <div className="flex gap-2">
               <button type="button" onClick={() => setShowCreate(false)} className="flex-1 py-2 rounded-xl border">Cancel</button>
