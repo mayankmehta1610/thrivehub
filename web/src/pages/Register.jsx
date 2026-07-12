@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
-import { wakeApi, NETWORK_ERROR, WAKE_TIMEOUT_MS } from '../api/client'
+import { wakeApi, NETWORK_ERROR, WAKE_TIMEOUT_MS, formatAuthError } from '../api/client'
 import { consumeAuthMessage } from '../hooks/useRequireAuth'
 
 const RETRY_INTERVAL_SEC = 5
@@ -92,7 +92,7 @@ export default function Register() {
       await register(form)
       navigate(redirectTo.startsWith('/') ? redirectTo : '/feed', { replace: true })
     } catch (err) {
-      setError(err.message)
+      setError(formatAuthError(err))
       setUnreachable(isNetworkFailure(err))
       setStatus('error')
     }

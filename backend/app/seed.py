@@ -498,6 +498,8 @@ def _ensure_user(db: Session, tenant_id: str, email: str, pwd: str, name: str,
                  username: str, verified: bool, role: str, bio: str, idx: int) -> User:
     existing = db.query(User).filter(User.tenant_id == tenant_id, User.email == email).first()
     if existing:
+        existing.password_hash = hash_password(pwd)
+        existing.status = UserStatus.active
         profile = db.query(Profile).filter(Profile.user_id == existing.id).first()
         rich = RICH_PROFILES.get(username, {})
         if profile:

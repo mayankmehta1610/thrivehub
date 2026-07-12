@@ -5,7 +5,18 @@ export const PRODUCTION_API_BASE = 'https://thrivehub-api.onrender.com/api/v1'
 export const PRODUCTION_HEALTH_URL = 'https://thrivehub-api.onrender.com/health'
 
 export const NETWORK_ERROR =
-  'Unable to reach the server. It may be waking up (free tier) — wait a moment and try again.'
+  'Server unreachable. It may be waking up (free tier) — wait a moment and try again.'
+
+export function formatAuthError(err) {
+  if (err instanceof NetworkError) return NETWORK_ERROR
+  if (err instanceof ApiError) {
+    if (err.status === 401) return 'Wrong email or password.'
+    if (err.status === 404) return 'Account not found.'
+    if (err.status >= 500) return 'Server error. Please try again in a moment.'
+    return err.message
+  }
+  return err?.message || 'Login failed.'
+}
 
 const MAX_RETRIES = 6
 
@@ -151,6 +162,8 @@ class ApiClient {
     const headers = { 'Content-Type': 'application/json', ...options.headers }
     if (this.token) headers.Authorization = `Bearer ${this.token}`
 
+    const skipRefresh = path === '/auth/login' || path === '/auth/register'
+
     let res
     try {
       res = await fetchWithRetry(`${getApiBase()}${path}`, { ...options, headers })
@@ -159,7 +172,7 @@ class ApiClient {
       throw err
     }
 
-    if (res.status === 401 && this.refreshToken) {
+    if (res.status === 401 && this.refreshToken && !skipRefresh) {
       let refreshRes
       try {
         refreshRes = await fetchWithRetry(`${getApiBase()}/auth/refresh`, {
@@ -217,12 +230,14 @@ class ApiClient {
 
   // Auth — always wake API before auth requests
   async login(email, password) {
+    this.clearTokens()
     const awake = await wakeApi()
     if (!awake) throw new NetworkError()
     return this.post('/auth/login', { email, password })
   }
 
   async register(data) {
+    this.clearTokens()
     const awake = await wakeApi()
     if (!awake) throw new NetworkError()
     return this.post('/auth/register', data)

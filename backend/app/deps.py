@@ -1,9 +1,9 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.database import get_db
-from app.models import User
+from app.models import Profile, User, UserSkill
 from app.utils.security import decode_token
 
 security = HTTPBearer(auto_error=False)
@@ -20,7 +20,10 @@ def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     user = (
         db.query(User)
-        .options(joinedload(User.profile))
+        .options(
+            joinedload(User.profile).selectinload(Profile.skills).joinedload(UserSkill.skill),
+            joinedload(User.profile).selectinload(Profile.photos),
+        )
         .filter(User.id == payload.get("sub"))
         .first()
     )
@@ -40,7 +43,10 @@ def get_optional_user(
         return None
     return (
         db.query(User)
-        .options(joinedload(User.profile))
+        .options(
+            joinedload(User.profile).selectinload(Profile.skills).joinedload(UserSkill.skill),
+            joinedload(User.profile).selectinload(Profile.photos),
+        )
         .filter(User.id == payload.get("sub"))
         .first()
     )

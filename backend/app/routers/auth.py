@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.config import settings
 from app.database import get_db
 from app.deps import get_current_user
-from app.models import Profile, Tenant, User, UserStatus
+from app.models import Profile, Tenant, User, UserSkill, UserStatus
 from app.schemas import LoginRequest, RefreshRequest, RegisterRequest, TokenResponse, UserOut
 from app.utils.security import (
     create_access_token,
@@ -15,6 +15,20 @@ from app.utils.security import (
 )
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
+
+
+def _user_out(user: User, db: Session) -> UserOut:
+    from app.routers.profiles import _profile_out
+
+    profile = user.profile
+    return UserOut(
+        id=user.id,
+        email=user.email,
+        status=user.status.value,
+        role=user.role,
+        created_at=user.created_at,
+        profile=_profile_out(profile, db) if profile else None,
+    )
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
@@ -60,7 +74,7 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
         .first()
     )
     if not user or not verify_password(payload.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise HTTPException(status_code=401, detail="Wrong email or password")
     return TokenResponse(
         access_token=create_access_token(user.id),
         refresh_token=create_refresh_token(user.id),
@@ -80,5 +94,5 @@ def refresh(payload: RefreshRequest):
 
 
 @router.get("/me", response_model=UserOut)
-def me(user: User = Depends(get_current_user)):
-    return user
+def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return _user_out(user, db)
