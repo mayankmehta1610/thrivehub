@@ -1,6 +1,8 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { wakeApi } from './api/client'
 import { storeAuthMessage } from './hooks/useRequireAuth'
 import { AUTH_MESSAGES } from './utils/authMessages'
 import Landing from './pages/Landing'
@@ -15,6 +17,13 @@ import Messages from './pages/Messages'
 import Notifications from './pages/Notifications'
 import SearchPage from './pages/SearchPage'
 import Admin from './pages/Admin'
+
+function AppWake() {
+  useEffect(() => {
+    wakeApi().catch(() => {})
+  }, [])
+  return null
+}
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -49,6 +58,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <AppWake />
         <Toaster
           position="top-center"
           toastOptions={{

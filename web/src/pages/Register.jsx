@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
-import { wakeApi, NETWORK_ERROR } from '../api/client'
+import { wakeApi, NETWORK_ERROR, WAKE_TIMEOUT_MS } from '../api/client'
 import { consumeAuthMessage } from '../hooks/useRequireAuth'
 
 function isNetworkFailure(err) {
@@ -13,7 +13,8 @@ function isNetworkFailure(err) {
 export default function Register() {
   const [form, setForm] = useState({ email: '', password: '', display_name: '', username: '' })
   const [error, setError] = useState('')
-  const [status, setStatus] = useState('idle')
+  const [apiReady, setApiReady] = useState(false)
+  const [status, setStatus] = useState('waking')
   const [unreachable, setUnreachable] = useState(false)
   const { register } = useAuth()
   const navigate = useNavigate()
@@ -25,19 +26,44 @@ export default function Register() {
     if (message) toast.error(message)
   }, [searchParams])
 
-  const runRegister = async (e) => {
-    e?.preventDefault()
+  useEffect(() => {
+    let cancelled = false
+    wakeApi({ maxWaitMs: WAKE_TIMEOUT_MS })
+      .then((ok) => {
+        if (cancelled) return
+        setApiReady(ok)
+        if (!ok) {
+          setError(NETWORK_ERROR)
+          setUnreachable(true)
+          setStatus('error')
+        } else {
+          setStatus('idle')
+        }
+      })
+    return () => { cancelled = true }
+  }, [])
+
+  const ensureApiReady = async () => {
+    if (apiReady) return true
+    setStatus('waking')
     setError('')
     setUnreachable(false)
-
-    setStatus('waking')
-    const awake = await wakeApi()
-    if (!awake) {
+    const ok = await wakeApi({ maxWaitMs: WAKE_TIMEOUT_MS })
+    setApiReady(ok)
+    if (!ok) {
       setError(NETWORK_ERROR)
       setUnreachable(true)
       setStatus('error')
-      return
+    } else {
+      setStatus('idle')
     }
+    return ok
+  }
+
+  const runRegister = async (e) => {
+    e?.preventDefault()
+    const ready = await ensureApiReady()
+    if (!ready) return
 
     setStatus('submitting')
     try {
@@ -50,24 +76,33 @@ export default function Register() {
     }
   }
 
-  const busy = status === 'waking' || status === 'submitting'
+  const retryWakeAndRegister = async () => {
+    setApiReady(false)
+    await runRegister()
+  }
+
+  const waking = status === 'waking'
+  const busy = waking || status === 'submitting'
   const update = (k, v) => setForm((f) => ({ ...f, [k]: v }))
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
-      <div className="w-full max-w-md bg-white rounded-lg shadow-xl p-8 border border-slate-200">
+      <div className="relative w-full max-w-md bg-white rounded-lg shadow-xl p-8 border border-slate-200">
+        {waking && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-lg bg-white/95 backdrop-blur-sm">
+            <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
+            <p className="mt-4 text-slate-800 font-semibold">Waking up server...</p>
+            <p className="mt-1 text-slate-500 text-sm text-center px-6">
+              Free tier can take up to 90 seconds. Please wait.
+            </p>
+          </div>
+        )}
+
         <div className="text-center mb-8">
           <div className="w-12 h-12 rounded-md bg-slate-900 flex items-center justify-center text-white font-bold text-xl mx-auto mb-4">T</div>
           <h1 className="text-2xl font-bold text-slate-900">Join ThriveHub</h1>
           <p className="text-slate-500 mt-1">Showcase your skills, sports & adventures</p>
         </div>
-
-        {status === 'waking' && (
-          <div className="mb-4 p-3 bg-amber-50 text-amber-800 rounded-md text-sm border border-amber-100 flex items-center gap-2">
-            <Loader2 className="w-4 h-4 animate-spin shrink-0" />
-            Waking up server...
-          </div>
-        )}
 
         {error && (
           <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md text-sm border border-red-100">
@@ -75,7 +110,7 @@ export default function Register() {
             {unreachable && (
               <button
                 type="button"
-                onClick={runRegister}
+                onClick={retryWakeAndRegister}
                 className="mt-2 block w-full py-2 rounded-md bg-red-100 hover:bg-red-200 text-red-800 font-medium transition-colors"
               >
                 Try again
@@ -95,18 +130,18 @@ export default function Register() {
                 value={form[field]}
                 onChange={(e) => update(field, e.target.value)}
                 required
-                disabled={busy}
+                disabled={busy || !apiReady}
                 className="w-full px-4 py-2.5 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 disabled:opacity-60"
               />
             </div>
           ))}
           <button
             type="submit"
-            disabled={busy}
+            disabled={busy || !apiReady}
             className="w-full py-3 rounded-md bg-orange-500 hover:bg-orange-600 text-white font-semibold disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
           >
-            {status === 'waking' && <Loader2 className="w-4 h-4 animate-spin" />}
-            {status === 'waking' ? 'Waking up server...' : status === 'submitting' ? 'Creating account...' : 'Create Account'}
+            {status === 'submitting' && <Loader2 className="w-4 h-4 animate-spin" />}
+            {status === 'submitting' ? 'Creating account...' : apiReady ? 'Create Account' : 'Waiting for server...'}
           </button>
         </form>
 

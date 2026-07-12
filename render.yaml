@@ -73,6 +73,9 @@ services:
         value: https://thrivehub-api.onrender.com/api/v1
     routes:
       - type: proxy
+        source: /health
+        destination: https://thrivehub-api.onrender.com/health
+      - type: proxy
         source: /api/*
         destination: https://thrivehub-api.onrender.com/api/*
       - type: rewrite

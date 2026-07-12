@@ -1,2 +1,3 @@
+/health https://thrivehub-api.onrender.com/health 200
 /api/* https://thrivehub-api.onrender.com/api/:splat 200
 /* /index.html 200

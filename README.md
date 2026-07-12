@@ -235,6 +235,25 @@ REST calls work via the static-site `/api/*` proxy without `VITE_API_URL`, but *
 | API docs | https://thrivehub-api.onrender.com/docs |
 | Health | https://thrivehub-api.onrender.com/health |
 
+### Keep API awake (free tier)
+
+Render free-tier web services spin down after ~15 minutes of inactivity. Cold starts can take 30–90 seconds and cause login failures.
+
+**Recommended: UptimeRobot (free)**
+
+1. Create a free account at [https://uptimerobot.com](https://uptimerobot.com)
+2. Click **Add New Monitor**
+3. Configure:
+   - **Monitor Type:** HTTP(s)
+   - **Friendly Name:** ThriveHub API Keep-Alive
+   - **URL:** `https://thrivehub-api.onrender.com/health`
+   - **Monitoring Interval:** 5 minutes (free tier minimum)
+4. Click **Create Monitor**
+
+UptimeRobot pings `/health` every 5 minutes, preventing cold starts. The web app also auto-wakes the API on page load (up to 90s) before enabling login.
+
+**Alternatives:** [cron-job.org](https://cron-job.org) (free cron every 5 min), or a paid Render cron job (see `render.yaml` and `backend/scripts/keepalive.md`).
+
 ### PostgreSQL schema
 
 Production uses schema `thrivehub` (`DATABASE_SCHEMA` in blueprint). All R3/R4 tables (moderation, appeals, subscriptions, sponsorships, device tokens, AI flags, etc.) are created automatically on API startup via `init_database()`.

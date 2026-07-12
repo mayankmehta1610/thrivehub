@@ -1,6 +1,6 @@
 import { DEFAULT_UPLOAD_LIMITS, validateFileSize } from '../utils/upload'
 
-const API_BASE = import.meta.env.VITE_API_URL || '/api/v1'
+export const WAKE_TIMEOUT_MS = 90000
 
 export const NETWORK_ERROR =
   'Unable to reach the server. It may be waking up (free tier) — wait a moment and try again.'
@@ -23,7 +23,20 @@ export class ApiError extends Error {
   }
 }
 
+function isLocalDev() {
+  if (typeof window === 'undefined') return false
+  const host = window.location.hostname
+  return host === 'localhost' || host === '127.0.0.1'
+}
+
+/** Same-origin /api/v1 proxy on production avoids CORS failures during cold start. */
+function getApiBase() {
+  if (!isLocalDev()) return '/api/v1'
+  return import.meta.env.VITE_API_URL || '/api/v1'
+}
+
 function getHealthUrl() {
+  if (!isLocalDev()) return `${window.location.origin}/health`
   const apiUrl = import.meta.env.VITE_API_URL || '/api/v1'
   if (apiUrl.startsWith('http')) {
     return apiUrl.replace(/\/api\/v1\/?$/, '') + '/health'
@@ -63,7 +76,7 @@ async function fetchWithRetry(url, options = {}, retries = MAX_RETRIES) {
  * Ping GET /health until the API responds or maxWaitMs elapses.
  * Used before login/register and on landing config load (Render free tier cold start).
  */
-export async function wakeApi({ onStatus, maxWaitMs = 60000 } = {}) {
+export async function wakeApi({ onStatus, maxWaitMs = WAKE_TIMEOUT_MS } = {}) {
   const healthUrl = getHealthUrl()
   const start = Date.now()
   let attempt = 0
@@ -117,7 +130,7 @@ class ApiClient {
 
     let res
     try {
-      res = await fetchWithRetry(`${API_BASE}${path}`, { ...options, headers })
+      res = await fetchWithRetry(`${getApiBase()}${path}`, { ...options, headers })
     } catch (err) {
       if (isNetworkError(err)) throw new NetworkError()
       throw err
@@ -126,7 +139,7 @@ class ApiClient {
     if (res.status === 401 && this.refreshToken) {
       let refreshRes
       try {
-        refreshRes = await fetchWithRetry(`${API_BASE}/auth/refresh`, {
+        refreshRes = await fetchWithRetry(`${getApiBase()}/auth/refresh`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refresh_token: this.refreshToken }),
@@ -139,7 +152,7 @@ class ApiClient {
         const data = await refreshRes.json()
         this.setTokens(data.access_token, data.refresh_token)
         headers.Authorization = `Bearer ${data.access_token}`
-        res = await fetchWithRetry(`${API_BASE}${path}`, { ...options, headers })
+        res = await fetchWithRetry(`${getApiBase()}${path}`, { ...options, headers })
       } else {
         this.clearTokens()
         throw new ApiError('Session expired', 401)
@@ -450,7 +463,7 @@ class ApiClient {
     if (this.token) headers.Authorization = `Bearer ${this.token}`
     let res
     try {
-      res = await fetchWithRetry(`${API_BASE}/media/upload`, { method: 'POST', headers, body: form })
+      res = await fetchWithRetry(`${getApiBase()}/media/upload`, { method: 'POST', headers, body: form })
     } catch (err) {
       if (isNetworkError(err)) throw new NetworkError()
       throw err
