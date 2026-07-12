@@ -363,6 +363,10 @@ class ApiClient {
     return this.post(`/communities/${slug}/join`)
   }
 
+  leaveCommunity(slug) {
+    return this.delete(`/communities/${slug}/leave`)
+  }
+
   // Events
   getEvents(params) {
     return this.get('/events', params)

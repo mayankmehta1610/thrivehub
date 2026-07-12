@@ -282,6 +282,7 @@ class CommunityOut(BaseModel):
     member_count: int = 0
     created_at: datetime
     owner: AuthorBrief | None = None
+    is_member: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -310,6 +311,7 @@ class EventOut(BaseModel):
     status: str
     participant_count: int = 0
     organiser: AuthorBrief | None = None
+    is_registered: bool = False
 
     model_config = {"from_attributes": True}
 

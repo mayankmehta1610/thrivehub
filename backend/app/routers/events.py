@@ -3,7 +3,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
-from app.deps import get_current_user
+from app.deps import get_current_user, get_optional_user
 from app.models import Event, EventParticipant, User
 from app.routers.posts import _author_brief
 from app.schemas import EventCreate, EventOut
@@ -12,8 +12,13 @@ from app.utils.pagination import PaginationParams, apply_pagination, paginated
 router = APIRouter(prefix="/events", tags=["Events"])
 
 
-def _event_out(event: Event, db: Session) -> EventOut:
+def _event_out(event: Event, db: Session, user: User | None = None) -> EventOut:
     participant_count = db.query(func.count(EventParticipant.id)).filter(EventParticipant.event_id == event.id).scalar() or 0
+    is_registered = False
+    if user:
+        is_registered = db.query(EventParticipant.id).filter(
+            EventParticipant.event_id == event.id, EventParticipant.user_id == user.id
+        ).first() is not None
     return EventOut(
         id=event.id,
         title=event.title,
@@ -26,6 +31,7 @@ def _event_out(event: Event, db: Session) -> EventOut:
         status=event.status,
         participant_count=participant_count,
         organiser=_author_brief(event.organiser),
+        is_registered=is_registered,
     )
 
 
@@ -37,6 +43,7 @@ def list_events(
     sort_order: str = Query("asc"),
     search: str | None = Query(None),
     db: Session = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
 ):
     params = PaginationParams(page=page, page_size=page_size, sort_by=sort_by, sort_order=sort_order, search=search)
     query = db.query(Event).options(joinedload(Event.organiser).joinedload(User.profile))
@@ -47,7 +54,7 @@ def list_events(
         search_fields=[Event.title, Event.description, Event.venue],
         sort_map={"start_at": Event.start_at, "title": Event.title, "created_at": Event.created_at},
     )
-    return paginated([_event_out(e, db) for e in items], total, params, total_pages)
+    return paginated([_event_out(e, db, user) for e in items], total, params, total_pages)
 
 
 @router.post("", response_model=EventOut, status_code=201)
@@ -72,11 +79,11 @@ def create_event(payload: EventCreate, user: User = Depends(get_current_user), d
 
 
 @router.get("/{event_id}", response_model=EventOut)
-def get_event(event_id: str, db: Session = Depends(get_db)):
+def get_event(event_id: str, db: Session = Depends(get_db), user: User | None = Depends(get_optional_user)):
     event = db.query(Event).options(joinedload(Event.organiser).joinedload(User.profile)).filter(Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    return _event_out(event, db)
+    return _event_out(event, db, user)
 
 
 @router.post("/{event_id}/register", status_code=201)

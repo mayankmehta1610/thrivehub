@@ -31,7 +31,12 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   Future<void> _load() async {
     try {
       final data = await context.read<AuthProvider>().api.getEvent(widget.eventId);
-      if (mounted) setState(() => _event = data);
+      if (mounted) {
+        setState(() {
+          _event = data;
+          if (data['is_registered'] == true) _registered = true;
+        });
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }

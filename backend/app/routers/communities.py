@@ -3,7 +3,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
-from app.deps import get_current_user
+from app.deps import get_current_user, get_optional_user
 from app.models import Community, CommunityMember, MembershipRole, MembershipStatus, User
 from app.routers.posts import _author_brief
 from app.schemas import CommunityCreate, CommunityOut
@@ -12,11 +12,16 @@ from app.utils.pagination import PaginationParams, apply_pagination, paginated
 router = APIRouter(prefix="/communities", tags=["Communities"])
 
 
-def _community_out(community: Community, db: Session) -> CommunityOut:
+def _community_out(community: Community, db: Session, user: User | None = None) -> CommunityOut:
     member_count = db.query(func.count(CommunityMember.id)).filter(
         CommunityMember.community_id == community.id,
         CommunityMember.status == MembershipStatus.active,
     ).scalar() or 0
+    is_member = False
+    if user:
+        is_member = db.query(CommunityMember.id).filter(
+            CommunityMember.community_id == community.id, CommunityMember.user_id == user.id
+        ).first() is not None
     return CommunityOut(
         id=community.id,
         name=community.name,
@@ -28,6 +33,7 @@ def _community_out(community: Community, db: Session) -> CommunityOut:
         member_count=member_count,
         created_at=community.created_at,
         owner=_author_brief(community.owner),
+        is_member=is_member,
     )
 
 
@@ -39,6 +45,7 @@ def list_communities(
     sort_order: str = Query("desc"),
     search: str | None = Query(None),
     db: Session = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
 ):
     params = PaginationParams(page=page, page_size=page_size, sort_by=sort_by, sort_order=sort_order, search=search)
     query = db.query(Community).options(joinedload(Community.owner).joinedload(User.profile)).filter(Community.status == "active")
@@ -49,7 +56,7 @@ def list_communities(
         search_fields=[Community.name, Community.description, Community.slug],
         sort_map={"created_at": Community.created_at, "name": Community.name},
     )
-    return paginated([_community_out(c, db) for c in items], total, params, total_pages)
+    return paginated([_community_out(c, db, user) for c in items], total, params, total_pages)
 
 
 @router.post("", response_model=CommunityOut, status_code=201)
@@ -87,7 +94,7 @@ def create_community(payload: CommunityCreate, user: User = Depends(get_current_
 
 
 @router.get("/{slug}", response_model=CommunityOut)
-def get_community(slug: str, db: Session = Depends(get_db)):
+def get_community(slug: str, db: Session = Depends(get_db), user: User | None = Depends(get_optional_user)):
     community = (
         db.query(Community)
         .options(joinedload(Community.owner).joinedload(User.profile))
@@ -96,7 +103,7 @@ def get_community(slug: str, db: Session = Depends(get_db)):
     )
     if not community:
         raise HTTPException(status_code=404, detail="Community not found")
-    return _community_out(community, db)
+    return _community_out(community, db, user)
 
 
 @router.post("/{slug}/join", status_code=201)

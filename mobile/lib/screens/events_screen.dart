@@ -109,17 +109,24 @@ class _EventsScreenState extends State<EventsScreen> {
                           children: [
                             Text('$count${capacity != null ? '/$capacity' : ''} going',
                                 style: TextStyle(color: AppColors.teal, fontWeight: FontWeight.w600)),
-                            ElevatedButton(
-                              onPressed: (busy || isFull) ? null : () => _register(id),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.accent,
-                                foregroundColor: Colors.white,
+                            if (e['is_registered'] == true)
+                              const Chip(
+                                avatar: Icon(Icons.check, size: 16, color: Colors.green),
+                                label: Text('Registered'),
                                 visualDensity: VisualDensity.compact,
+                              )
+                            else
+                              ElevatedButton(
+                                onPressed: (busy || isFull) ? null : () => _register(id),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.accent,
+                                  foregroundColor: Colors.white,
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                                child: busy
+                                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                    : Text(isFull ? 'Full' : 'Register'),
                               ),
-                              child: busy
-                                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                  : Text(isFull ? 'Full' : 'Register'),
-                            ),
                           ],
                         ),
                       ],

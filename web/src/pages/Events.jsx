@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Calendar, MapPin, Users, Plus } from 'lucide-react'
+import { Calendar, MapPin, Users, Plus, Check } from 'lucide-react'
+import toast from 'react-hot-toast'
 import api from '../api/client'
 import Navbar from '../components/Navbar'
 import DataTable from '../components/DataTable'
@@ -44,8 +45,13 @@ export default function Events() {
   const handleRegister = async (e, id) => {
     e.stopPropagation()
     if (!requireAuth(AUTH_MESSAGES.registerEvent)) return
-    await api.registerEvent(id)
-    load()
+    try {
+      const res = await api.registerEvent(id)
+      toast.success(res?.status === 'already_registered' ? "You're already registered" : "You're registered! 🎉")
+      load()
+    } catch (err) {
+      toast.error(err?.message || 'Could not register for this event')
+    }
   }
 
   return (
@@ -77,7 +83,11 @@ export default function Events() {
                 {ev.venue && <p className="text-sm text-slate-500 flex items-center gap-1"><MapPin className="w-4 h-4" />{ev.venue}</p>}
                 <div className="flex items-center justify-between mt-3">
                   <span className="text-sm text-fuchsia-500 flex items-center gap-1"><Users className="w-4 h-4" />{ev.participant_count}{ev.capacity ? `/${ev.capacity}` : ''}</span>
-                  <button onClick={(e) => handleRegister(e, ev.id)} className="px-4 py-1.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium transition-colors">Register</button>
+                  {ev.is_registered ? (
+                    <span className="px-4 py-1.5 rounded-xl bg-emerald-50 text-emerald-600 text-sm font-medium flex items-center gap-1"><Check className="w-4 h-4" /> Registered</span>
+                  ) : (
+                    <button onClick={(e) => handleRegister(e, ev.id)} className="px-4 py-1.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium transition-colors">Register</button>
+                  )}
                 </div>
               </div>
             </div>

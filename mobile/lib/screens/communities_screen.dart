@@ -149,7 +149,7 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
                               Builder(builder: (context) {
                                 final slug = c['slug'] as String;
                                 final busy = _joining.contains(slug);
-                                final done = _joined.contains(slug);
+                                final done = _joined.contains(slug) || c['is_member'] == true;
                                 return ElevatedButton.icon(
                                   onPressed: (busy || done) ? null : () => _join(slug),
                                   icon: Icon(done ? Icons.check : Icons.group_add, size: 16),

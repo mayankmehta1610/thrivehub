@@ -30,7 +30,11 @@ export default function EventDetail() {
     api.getConfig().then(setConfig).catch(() => {})
     setEvent(null)
     setNotFound(false)
-    api.getEvent(id).then(setEvent).catch(() => setNotFound(true))
+    setRegistered(false)
+    api.getEvent(id).then((ev) => {
+      setEvent(ev)
+      setRegistered(!!ev.is_registered)
+    }).catch(() => setNotFound(true))
   }, [id])
 
   const handleRegister = async () => {

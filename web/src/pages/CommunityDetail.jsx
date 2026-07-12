@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Users, UserPlus } from 'lucide-react'
+import { Users, UserPlus, Check } from 'lucide-react'
+import toast from 'react-hot-toast'
 import api from '../api/client'
 import Navbar from '../components/Navbar'
 import SafeImage from '../components/SafeImage'
@@ -21,11 +22,26 @@ export default function CommunityDetail() {
     api.getPosts({ page_size: 20 }).then((data) => setPosts(data.items))
   }, [slug])
 
+  const [busy, setBusy] = useState(false)
+
   const handleJoin = async () => {
     if (!requireAuth(AUTH_MESSAGES.joinCommunity)) return
-    await api.joinCommunity(slug)
-    const updated = await api.getCommunity(slug)
-    setCommunity(updated)
+    setBusy(true)
+    try {
+      if (community.is_member) {
+        await api.leaveCommunity(slug)
+        toast.success('Left community')
+      } else {
+        await api.joinCommunity(slug)
+        toast.success('Joined community 🎉')
+      }
+      const updated = await api.getCommunity(slug)
+      setCommunity(updated)
+    } catch (err) {
+      toast.error(err?.message || 'Something went wrong')
+    } finally {
+      setBusy(false)
+    }
   }
 
   if (!community) return <div className="min-h-screen flex items-center justify-center">Loading...</div>
@@ -47,8 +63,18 @@ export default function CommunityDetail() {
                 <Users className="w-4 h-4" /> {community.member_count} members
               </p>
             </div>
-            <button onClick={handleJoin} className="flex items-center gap-2 px-5 py-2 rounded-xl gradient-hero text-white font-medium">
-              <UserPlus className="w-4 h-4" /> Join
+            <button
+              onClick={handleJoin}
+              disabled={busy}
+              className={`flex items-center gap-2 px-5 py-2 rounded-xl font-medium disabled:opacity-60 ${
+                community.is_member
+                  ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100'
+                  : 'gradient-hero text-white'
+              }`}
+            >
+              {community.is_member
+                ? <><Check className="w-4 h-4" /> Joined</>
+                : <><UserPlus className="w-4 h-4" /> Join</>}
             </button>
           </div>
           <p className="mt-4 text-slate-600">{community.description}</p>
