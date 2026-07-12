@@ -37,7 +37,7 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: CORS_ORIGINS
-        value: https://thrivehub-web.onrender.com
+        value: https://thrivehub-web.onrender.com,https://www.thrivehub-web.onrender.com
       - key: PYTHON_VERSION
         value: "3.12.0"
       # Optional — set in Render dashboard (sync: false)

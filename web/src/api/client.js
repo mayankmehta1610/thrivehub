@@ -1,5 +1,27 @@
 const API_BASE = import.meta.env.VITE_API_URL || '/api/v1'
 
+const NETWORK_ERROR =
+  'Unable to reach the server. It may be waking up (free tier) — wait a moment and try again.'
+
+function isNetworkError(err) {
+  return err instanceof TypeError || err?.message === 'Failed to fetch'
+}
+
+async function fetchWithRetry(url, options = {}, retries = 3) {
+  let lastError
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      const res = await fetch(url, options)
+      return res
+    } catch (err) {
+      lastError = err
+      if (!isNetworkError(err) || attempt === retries - 1) throw err
+      await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)))
+    }
+  }
+  throw lastError
+}
+
 class ApiClient {
   constructor() {
     this.token = localStorage.getItem('access_token')
@@ -24,19 +46,31 @@ class ApiClient {
     const headers = { 'Content-Type': 'application/json', ...options.headers }
     if (this.token) headers.Authorization = `Bearer ${this.token}`
 
-    let res = await fetch(`${API_BASE}${path}`, { ...options, headers })
+    let res
+    try {
+      res = await fetchWithRetry(`${API_BASE}${path}`, { ...options, headers })
+    } catch (err) {
+      if (isNetworkError(err)) throw new Error(NETWORK_ERROR)
+      throw err
+    }
 
     if (res.status === 401 && this.refreshToken) {
-      const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: this.refreshToken }),
-      })
+      let refreshRes
+      try {
+        refreshRes = await fetchWithRetry(`${API_BASE}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: this.refreshToken }),
+        })
+      } catch (err) {
+        if (isNetworkError(err)) throw new Error(NETWORK_ERROR)
+        throw err
+      }
       if (refreshRes.ok) {
         const data = await refreshRes.json()
         this.setTokens(data.access_token, data.refresh_token)
         headers.Authorization = `Bearer ${data.access_token}`
-        res = await fetch(`${API_BASE}${path}`, { ...options, headers })
+        res = await fetchWithRetry(`${API_BASE}${path}`, { ...options, headers })
       } else {
         this.clearTokens()
         throw new Error('Session expired')
@@ -300,7 +334,13 @@ class ApiClient {
     form.append('file', file)
     const headers = {}
     if (this.token) headers.Authorization = `Bearer ${this.token}`
-    const res = await fetch(`${API_BASE}/media/upload`, { method: 'POST', headers, body: form })
+    let res
+    try {
+      res = await fetchWithRetry(`${API_BASE}/media/upload`, { method: 'POST', headers, body: form })
+    } catch (err) {
+      if (isNetworkError(err)) throw new Error(NETWORK_ERROR)
+      throw err
+    }
     if (!res.ok) throw new Error('Upload failed')
     return res.json()
   }
