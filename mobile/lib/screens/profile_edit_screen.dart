@@ -5,6 +5,7 @@ import '../providers/auth_provider.dart';
 import '../utils/auth_messages.dart';
 import '../utils/require_auth.dart';
 import '../utils/upload_limits.dart';
+import '../theme.dart';
 
 class ProfileEditScreen extends StatefulWidget {
   const ProfileEditScreen({super.key});
@@ -115,9 +116,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       appBar: AppBar(
         title: const Text('Edit Profile'),
         flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(colors: [Color(0xFF3B82F6), Color(0xFF6366F1), Color(0xFF8B5CF6)]),
-          ),
+          decoration: const BoxDecoration(gradient: AppColors.heroGradient),
         ),
         foregroundColor: Colors.white,
       ),
@@ -142,7 +141,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             ElevatedButton(
               onPressed: _saving ? null : _save,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6366F1),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

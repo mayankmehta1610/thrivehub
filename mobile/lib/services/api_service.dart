@@ -206,25 +206,58 @@ class ApiService {
     return data;
   }
 
-  Future<Map<String, dynamic>> getMe() => get('/auth/me');
-  Future<Map<String, dynamic>> getConfig() => get('/config');
-  Future<Map<String, dynamic>> getFeed({int page = 1}) => get('/feed', {'page': '$page', 'page_size': '20'});
+  Future<dynamic> patch(String path, Map<String, dynamic> body) async {
+    http.Response res;
+    try {
+      res = await _fetchWithRetry(
+        () => http.patch(Uri.parse('$baseUrl$path'), headers: _headers, body: jsonEncode(body)),
+      );
+    } catch (e) {
+      if (_isNetworkError(e)) throw NetworkException();
+      rethrow;
+    }
+    if (res.statusCode == 401) return _refreshAndRetry(() => patch(path, body));
+    _throwForResponse(res);
+    return res.body.isEmpty ? null : jsonDecode(res.body);
+  }
+
+  // Typed helpers so callers get Future<Map<String, dynamic>> from the dynamic core.
+  Future<Map<String, dynamic>> _getMap(String path, [Map<String, String>? params]) async =>
+      (await get(path, params)) as Map<String, dynamic>;
+  Future<Map<String, dynamic>> _postMap(String path, [Map<String, dynamic> body = const {}]) async =>
+      (await post(path, body)) as Map<String, dynamic>;
+
+  Future<Map<String, dynamic>> getMe() => _getMap('/auth/me');
+  Future<Map<String, dynamic>> getConfig() => _getMap('/config');
+  Future<Map<String, dynamic>> getFeed({int page = 1}) => _getMap('/feed', {'page': '$page', 'page_size': '20'});
   Future<Map<String, dynamic>> getCommunities({int page = 1, String? search}) =>
-      get('/communities', {'page': '$page', 'page_size': '20', if (search != null) 'search': search});
-  Future<Map<String, dynamic>> getEvents({int page = 1}) => get('/events', {'page': '$page', 'page_size': '20'});
+      _getMap('/communities', {'page': '$page', 'page_size': '20', if (search != null) 'search': search});
+  Future<Map<String, dynamic>> getEvents({int page = 1}) => _getMap('/events', {'page': '$page', 'page_size': '20'});
+  Future<Map<String, dynamic>> getEvent(String id) => _getMap('/events/$id');
+  Future<void> registerEvent(String id) => post('/events/$id/register', {});
+  Future<void> joinCommunity(String slug) => post('/communities/$slug/join', {});
   Future<Map<String, dynamic>> getNotifications({int page = 1}) =>
-      get('/notifications', {'page': '$page', 'page_size': '20'});
-  Future<Map<String, dynamic>> search(String q) => get('/search', {'q': q});
+      _getMap('/notifications', {'page': '$page', 'page_size': '20'});
+  Future<void> markNotificationRead(String id) => patch('/notifications/$id/read', {});
+  Future<void> markAllNotificationsRead() => post('/notifications/read-all', {});
+  Future<Map<String, dynamic>> search(String q, {String? entity}) =>
+      _getMap('/search', {'q': q, if (entity != null) 'entity': entity});
   Future<Map<String, dynamic>> createPost(String body, {String? imageUrl}) =>
-      post('/posts', {'body': body, if (imageUrl != null) 'image_url': imageUrl});
+      _postMap('/posts', {'body': body, if (imageUrl != null) 'image_url': imageUrl});
   Future<void> reactPost(String postId) => post('/posts/$postId/reactions', {'reaction_type': 'like'});
+  Future<Map<String, dynamic>> getPostComments(String postId) =>
+      _getMap('/posts/$postId/comments', {'page_size': '50'});
+  Future<Map<String, dynamic>> createComment(String postId, String body) =>
+      _postMap('/posts/$postId/comments', {'body': body});
 
   Future<Map<String, dynamic>> getConversations({int page = 1}) =>
-      get('/messages/conversations', {'page': '$page', 'page_size': '50'});
+      _getMap('/messages/conversations', {'page': '$page', 'page_size': '50'});
   Future<Map<String, dynamic>> getMessages(String convId, {int page = 1}) =>
-      get('/messages/conversations/$convId/messages', {'page': '$page', 'page_size': '100'});
+      _getMap('/messages/conversations/$convId/messages', {'page': '$page', 'page_size': '100'});
   Future<void> sendMessage(String convId, String body) =>
       post('/messages/conversations/$convId/messages', {'body': body});
+  Future<Map<String, dynamic>> createConversation(String userId) =>
+      _postMap('/messages/conversations', {'type': 'direct', 'participant_ids': [userId]});
 
   Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> data) async {
     http.Response res;
@@ -248,9 +281,9 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getSponsorships({String? placement}) =>
-      get('/sponsorships', {if (placement != null) 'placement': placement, 'page_size': '5'});
+      _getMap('/sponsorships', {if (placement != null) 'placement': placement, 'page_size': '5'});
   Future<Map<String, dynamic>> getSubscriptionTiers() =>
-      get('/subscriptions/tiers', {'page_size': '10'});
+      _getMap('/subscriptions/tiers', {'page_size': '10'});
 
   Future<Map<String, dynamic>> uploadMedia(
     List<int> bytes, {

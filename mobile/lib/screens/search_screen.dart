@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../theme.dart';
+import 'event_detail_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -49,10 +51,22 @@ class _SearchScreenState extends State<SearchScreen> {
                   itemCount: _results.length,
                   itemBuilder: (_, i) {
                     final r = _results[i];
+                    final isEvent = r['entity_type'] == 'event';
                     return ListTile(
-                      leading: CircleAvatar(child: Text((r['entity_type'] ?? '?')[0].toUpperCase())),
+                      leading: CircleAvatar(
+                        backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+                        foregroundColor: AppColors.primary,
+                        child: Text((r['entity_type'] ?? '?')[0].toUpperCase()),
+                      ),
                       title: Text(r['title'] ?? ''),
                       subtitle: Text('${r['entity_type']} · ${r['subtitle'] ?? ''}'),
+                      trailing: isEvent ? const Icon(Icons.chevron_right) : null,
+                      onTap: isEvent
+                          ? () => Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => EventDetailScreen(eventId: r['id'])),
+                              )
+                          : null,
                     );
                   },
                 )

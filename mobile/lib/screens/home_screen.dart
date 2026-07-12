@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../utils/auth_messages.dart';
 import '../utils/require_auth.dart';
 import '../utils/upload_limits.dart';
+import '../theme.dart';
 import 'communities_screen.dart';
 import 'events_screen.dart';
 import 'login_screen.dart';
@@ -116,9 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Text(config?['app_name'] ?? 'ThriveHub', style: const TextStyle(fontWeight: FontWeight.bold)),
         flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(colors: [Color(0xFF3B82F6), Color(0xFF6366F1), Color(0xFF8B5CF6)]),
-          ),
+          decoration: const BoxDecoration(gradient: AppColors.heroGradient),
         ),
         foregroundColor: Colors.white,
         actions: [
@@ -222,7 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ElevatedButton(
                         onPressed: _createPost,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6366F1),
+                          backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
@@ -286,7 +285,11 @@ class _PostCard extends StatelessWidget {
                 Text('${post['reaction_count'] ?? 0}'),
                 const SizedBox(width: 16),
                 InkWell(
-                  onTap: () => requireAuth(context, message: AuthMessages.comment),
+                  onTap: () => showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (_) => _CommentSheet(postId: post['id'], onChanged: onReact),
+                  ),
                   child: const Row(
                     children: [
                       Icon(Icons.comment_outlined, color: Colors.grey),
@@ -298,6 +301,128 @@ class _PostCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CommentSheet extends StatefulWidget {
+  final String postId;
+  final VoidCallback onChanged;
+  const _CommentSheet({required this.postId, required this.onChanged});
+
+  @override
+  State<_CommentSheet> createState() => _CommentSheetState();
+}
+
+class _CommentSheetState extends State<_CommentSheet> {
+  List<dynamic> _comments = [];
+  bool _loading = true;
+  bool _posting = false;
+  final _controller = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final data = await context.read<AuthProvider>().api.getPostComments(widget.postId);
+      if (mounted) setState(() => _comments = data['items'] ?? []);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _post() async {
+    if (!requireAuth(context, message: AuthMessages.comment)) return;
+    if (_controller.text.trim().isEmpty) return;
+    setState(() => _posting = true);
+    try {
+      await context.read<AuthProvider>().api.createComment(widget.postId, _controller.text.trim());
+      _controller.clear();
+      await _load();
+      widget.onChanged();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red.shade700),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _posting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.7,
+        maxChildSize: 0.9,
+        builder: (context, scrollController) => Column(
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('Comments', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            ),
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _comments.isEmpty
+                      ? const Center(child: Text('No comments yet. Be the first!', style: TextStyle(color: Colors.grey)))
+                      : ListView.builder(
+                          controller: scrollController,
+                          itemCount: _comments.length,
+                          itemBuilder: (_, i) {
+                            final c = _comments[i];
+                            final author = c['author'];
+                            return ListTile(
+                              leading: CircleAvatar(
+                                backgroundImage: author?['avatar_url'] != null
+                                    ? CachedNetworkImageProvider(author['avatar_url'])
+                                    : null,
+                                child: author?['avatar_url'] == null ? const Icon(Icons.person, size: 18) : null,
+                              ),
+                              title: Text(author?['display_name'] ?? 'User',
+                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                              subtitle: Text(c['body'] ?? ''),
+                            );
+                          },
+                        ),
+            ),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _controller,
+                        decoration: InputDecoration(
+                          hintText: 'Write a comment...',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        ),
+                        onSubmitted: (_) => _post(),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: _posting ? null : _post,
+                      icon: _posting
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.send, color: AppColors.primary),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

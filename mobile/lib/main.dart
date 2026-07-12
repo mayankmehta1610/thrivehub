@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'screens/home_screen.dart';
+import 'theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,14 +22,14 @@ class ThriveHubApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF6366F1),
-            primary: const Color(0xFF6366F1),
-            secondary: const Color(0xFF8B5CF6),
-            tertiary: const Color(0xFF14B8A6),
+            seedColor: AppColors.primary,
+            primary: AppColors.primary,
+            secondary: AppColors.secondary,
+            tertiary: AppColors.teal,
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF43F5E),
+              backgroundColor: AppColors.accent,
               foregroundColor: Colors.white,
             ),
           ),

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../utils/require_auth.dart';
+import '../theme.dart';
 
 class LoginScreen extends StatefulWidget {
   final bool returnOnSuccess;
@@ -80,13 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFEEF2FF), Color(0xFFFDF2F8), Color(0xFFF0FDFA)],
-          ),
-        ),
+        decoration: const BoxDecoration(gradient: AppColors.softBackground),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -97,7 +92,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: 72, height: 72,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),
-                      gradient: const LinearGradient(colors: [Color(0xFF3B82F6), Color(0xFF6366F1), Color(0xFF8B5CF6)]),
+                      gradient: AppColors.heroGradient,
                     ),
                     child: const Center(child: Text('T', style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold))),
                   ),
@@ -111,20 +106,20 @@ class _LoginScreenState extends State<LoginScreen> {
                       padding: const EdgeInsets.all(12),
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEEF2FF),
+                        color: const Color(0xFFF5F3FF),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFC7D2FE)),
+                        border: Border.all(color: const Color(0xFFE9D5FF)),
                       ),
-                      child: Row(
+                      child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           SizedBox(
                             width: 16,
                             height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF6366F1)),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
                           ),
-                          const SizedBox(width: 8),
-                          Text('Waking up server...', style: TextStyle(color: Color(0xFF4338CA))),
+                          SizedBox(width: 8),
+                          Text('Waking up server...', style: TextStyle(color: Color(0xFF6D28D9))),
                         ],
                       ),
                     ),
