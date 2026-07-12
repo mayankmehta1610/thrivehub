@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../utils/auth_messages.dart';
+import '../utils/require_auth.dart';
 import '../utils/upload_limits.dart';
 import 'communities_screen.dart';
 import 'events_screen.dart';
+import 'login_screen.dart';
 import 'messages_screen.dart';
 import 'notifications_screen.dart';
 import 'profile_edit_screen.dart';
@@ -49,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _createPost() async {
+    if (!requireAuth(context, message: AuthMessages.createPost)) return;
     if (_postController.text.trim().isEmpty) return;
     await context.read<AuthProvider>().api.createPost(
           _postController.text,
@@ -60,6 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _pickPostImage() async {
+    if (!requireAuth(context, message: AuthMessages.uploadMedia)) return;
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
     if (picked == null) return;
@@ -67,13 +72,12 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _uploading = true);
     try {
       final auth = context.read<AuthProvider>();
-      final limits = UploadLimits.fromConfig(auth.config);
       final bytes = await picked.readAsBytes();
       final result = await auth.api.uploadMedia(
         bytes,
         filename: picked.name,
         contentType: picked.mimeType ?? 'image/jpeg',
-        limits: limits,
+        limits: auth.uploadLimits,
       );
       setState(() => _pendingImageUrl = result['url']);
     } on UploadValidationException catch (e) {
@@ -118,16 +122,29 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         foregroundColor: Colors.white,
         actions: [
-          GestureDetector(
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileEditScreen())),
-            child: CircleAvatar(
-              backgroundImage: user?['profile']?['avatar_url'] != null
-                  ? CachedNetworkImageProvider(user!['profile']['avatar_url'])
-                  : null,
-              child: user?['profile']?['avatar_url'] == null ? const Icon(Icons.person) : null,
+          if (user != null) ...[
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfileEditScreen()),
+              ),
+              child: CircleAvatar(
+                backgroundImage: user['profile']?['avatar_url'] != null
+                    ? CachedNetworkImageProvider(user['profile']['avatar_url'])
+                    : null,
+                child: user['profile']?['avatar_url'] == null ? const Icon(Icons.person) : null,
+              ),
             ),
-          ),
-          IconButton(icon: const Icon(Icons.logout), onPressed: () => auth.logout()),
+            IconButton(icon: const Icon(Icons.logout), onPressed: () => auth.logout()),
+          ] else
+            IconButton(
+              icon: const Icon(Icons.login),
+              tooltip: 'Sign in',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginScreen(returnOnSuccess: true)),
+              ),
+            ),
           const SizedBox(width: 8),
         ],
       ),
@@ -261,13 +278,21 @@ class _PostCard extends StatelessWidget {
                 IconButton(
                   icon: Icon(Icons.favorite, color: post['user_reacted'] == true ? Colors.pink : Colors.grey),
                   onPressed: () async {
+                    if (!requireAuth(context, message: AuthMessages.like)) return;
                     await context.read<AuthProvider>().api.reactPost(post['id']);
                     onReact();
                   },
                 ),
                 Text('${post['reaction_count'] ?? 0}'),
                 const SizedBox(width: 16),
-                const Icon(Icons.comment_outlined, color: Colors.grey),
+                InkWell(
+                  onTap: () => requireAuth(context, message: AuthMessages.comment),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.comment_outlined, color: Colors.grey),
+                    ],
+                  ),
+                ),
                 Text(' ${post['comment_count'] ?? 0}'),
               ],
             ),

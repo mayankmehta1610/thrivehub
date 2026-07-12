@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../utils/auth_messages.dart';
+import '../utils/require_auth.dart';
 import '../utils/upload_limits.dart';
 
 class ProfileEditScreen extends StatefulWidget {
@@ -45,6 +47,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   }
 
   Future<void> _pickAvatar() async {
+    if (!requireAuth(context, message: AuthMessages.uploadMedia)) return;
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
     if (picked == null) return;
@@ -83,6 +86,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   }
 
   Future<void> _save() async {
+    if (!requireAuth(context, message: AuthMessages.editProfile)) return;
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
     try {

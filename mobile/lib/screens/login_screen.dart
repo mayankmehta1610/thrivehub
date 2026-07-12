@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
+import '../utils/require_auth.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final bool returnOnSuccess;
+
+  const LoginScreen({super.key, this.returnOnSuccess = false});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -17,6 +20,23 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _waking = false;
   String? _error;
   bool _unreachable = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final message = consumeAuthMessage();
+      if (message != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: const Color(0xFFDC2626),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    });
+  }
 
   Future<void> _login() async {
     setState(() {
@@ -34,6 +54,10 @@ class _LoginScreenState extends State<LoginScreen> {
           if (mounted) setState(() => _waking = true);
         },
       );
+      if (!mounted) return;
+      if (widget.returnOnSuccess) {
+        Navigator.pop(context, true);
+      }
     } catch (e) {
       if (!mounted) return;
       final msg = e.toString().replaceFirst('Exception: ', '');

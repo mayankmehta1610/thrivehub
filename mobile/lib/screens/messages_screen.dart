@@ -2,6 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../utils/auth_messages.dart';
+import '../utils/require_auth.dart';
 
 class MessagesScreen extends StatefulWidget {
   const MessagesScreen({super.key});
@@ -45,6 +47,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
   }
 
   Future<void> _send() async {
+    if (!requireAuth(context, message: AuthMessages.sendMessage)) return;
     if (_msgController.text.trim().isEmpty || _selected == null) return;
     await context.read<AuthProvider>().api.sendMessage(_selected['id'], _msgController.text);
     _msgController.clear();
