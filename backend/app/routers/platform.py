@@ -18,7 +18,9 @@ from app.schemas import (
     SearchResult,
     SkillCategoryItem,
     SponsorshipBrief,
+    UploadLimits,
 )
+from app.utils.upload_limits import get_upload_limits
 from app.utils.pagination import PaginationParams, apply_pagination, paginated
 
 router = APIRouter(tags=["Platform"])
@@ -165,6 +167,8 @@ def platform_config(db: Session = Depends(get_db)):
     community_count = db.query(func.count(Community.id)).filter(Community.status == "active").scalar() or 0
     event_count = db.query(func.count(Event.id)).scalar() or 0
 
+    limits = get_upload_limits(db)
+
     return PlatformConfigOut(
         app_name=config.get("app_name", "ThriveHub"),
         tagline=config.get("tagline", "Skills, Sports & Adventure Community"),
@@ -185,6 +189,7 @@ def platform_config(db: Session = Depends(get_db)):
             "events": event_count,
             "skill_categories": len(skill_categories),
         },
+        upload_limits=UploadLimits(**limits),
     )
 
 

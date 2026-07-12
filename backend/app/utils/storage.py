@@ -37,12 +37,17 @@ def _local_dir() -> Path:
     return d
 
 
-async def upload_file(file: UploadFile, folder: str = "media") -> dict:
+async def upload_bytes(
+    content: bytes,
+    *,
+    content_type: str | None = None,
+    filename: str | None = None,
+    folder: str = "media",
+) -> dict:
     ext = ""
-    if file.filename and "." in file.filename:
-        ext = "." + file.filename.rsplit(".", 1)[-1].lower()
+    if filename and "." in filename:
+        ext = "." + filename.rsplit(".", 1)[-1].lower()
     key = f"{folder}/{uuid.uuid4().hex}{ext}"
-    content = await file.read()
 
     s3 = _get_s3()
     if s3:
@@ -50,7 +55,7 @@ async def upload_file(file: UploadFile, folder: str = "media") -> dict:
             Bucket=settings.s3_bucket,
             Key=key,
             Body=content,
-            ContentType=file.content_type or "application/octet-stream",
+            ContentType=content_type or "application/octet-stream",
         )
         if settings.s3_endpoint:
             url = f"{settings.s3_endpoint.rstrip('/')}/{settings.s3_bucket}/{key}"
@@ -63,3 +68,13 @@ async def upload_file(file: UploadFile, folder: str = "media") -> dict:
     local_path.write_bytes(content)
     url = f"/uploads/{key}"
     return {"key": key, "url": url, "storage": "local"}
+
+
+async def upload_file(file: UploadFile, folder: str = "media") -> dict:
+    content = await file.read()
+    return await upload_bytes(
+        content,
+        content_type=file.content_type,
+        filename=file.filename,
+        folder=folder,
+    )

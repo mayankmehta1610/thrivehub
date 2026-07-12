@@ -1,7 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../utils/upload_limits.dart';
 import 'communities_screen.dart';
 import 'events_screen.dart';
 import 'messages_screen.dart';
@@ -21,6 +23,8 @@ class _HomeScreenState extends State<HomeScreen> {
   List<dynamic> _posts = [];
   List<dynamic> _sponsors = [];
   bool _loading = true;
+  bool _uploading = false;
+  String? _pendingImageUrl;
   final _postController = TextEditingController();
 
   @override
@@ -46,9 +50,47 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _createPost() async {
     if (_postController.text.trim().isEmpty) return;
-    await context.read<AuthProvider>().api.createPost(_postController.text);
+    await context.read<AuthProvider>().api.createPost(
+          _postController.text,
+          imageUrl: _pendingImageUrl,
+        );
     _postController.clear();
+    setState(() => _pendingImageUrl = null);
     _loadFeed();
+  }
+
+  Future<void> _pickPostImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    if (picked == null) return;
+
+    setState(() => _uploading = true);
+    try {
+      final auth = context.read<AuthProvider>();
+      final limits = UploadLimits.fromConfig(auth.config);
+      final bytes = await picked.readAsBytes();
+      final result = await auth.api.uploadMedia(
+        bytes,
+        filename: picked.name,
+        contentType: picked.mimeType ?? 'image/jpeg',
+        limits: limits,
+      );
+      setState(() => _pendingImageUrl = result['url']);
+    } on UploadValidationException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message), backgroundColor: Colors.red.shade700),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red.shade700),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
   }
 
   @override
@@ -143,17 +185,33 @@ class _HomeScreenState extends State<HomeScreen> {
                       border: InputBorder.none,
                     ),
                   ),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: ElevatedButton(
-                      onPressed: _createPost,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6366F1),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  if (_pendingImageUrl != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: CachedNetworkImage(imageUrl: _pendingImageUrl!, height: 120, width: double.infinity, fit: BoxFit.cover),
                       ),
-                      child: const Text('Post'),
                     ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        onPressed: _uploading ? null : _pickPostImage,
+                        icon: _uploading
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.image_outlined),
+                      ),
+                      ElevatedButton(
+                        onPressed: _createPost,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF6366F1),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Post'),
+                      ),
+                    ],
                   ),
                 ],
               ),

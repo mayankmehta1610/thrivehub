@@ -52,7 +52,7 @@ ThriveHub/
 
 ### Infrastructure
 - **Redis caching**: Optional; auto-falls back to in-memory cache in dev
-- **S3 media upload**: `POST /api/v1/media/upload` with local `uploads/` fallback
+- **S3 media upload**: `POST /api/v1/media/upload` with local `uploads/` fallback; size limits from DB (`image_max_bytes` 500 KB, `video_max_bytes` 2 MB) exposed via `GET /api/v1/config` → `upload_limits`
 - **Audit logging**: All admin moderation actions logged with actor, IP, timestamp
 
 ### Mobile (Flutter)
@@ -60,6 +60,12 @@ ThriveHub/
 - **Messages screen** with conversation list and chat
 - **Profile editing** screen
 - Sponsorship banners, Material 3 polish matching web theme
+
+See **[Mobile Features](mobile/README.md)** for the full screen guide, API wiring matrix, feature parity vs web, theme details, demo credentials, and roadmap.
+
+## Mobile Features
+
+The Flutter app (`mobile/`) is a 6-tab community client (Feed, Groups, Events, Messages, Alerts, Search) with JWT auth, profile editing, image uploads, and sponsorship banners. Full documentation — screens, API endpoints, implemented vs missing features, navigation, theme, run instructions, demo logins, and roadmap — is in **[mobile/README.md](mobile/README.md)**.
 
 ## Quick Start
 

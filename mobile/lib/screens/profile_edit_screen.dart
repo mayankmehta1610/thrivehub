@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../utils/upload_limits.dart';
 
 class ProfileEditScreen extends StatefulWidget {
   const ProfileEditScreen({super.key});
@@ -17,6 +19,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   late TextEditingController _website;
   late TextEditingController _avatarUrl;
   bool _saving = false;
+  bool _uploading = false;
+
+  UploadLimits get _limits => UploadLimits.fromConfig(context.read<AuthProvider>().config);
 
   @override
   void initState() {
@@ -37,6 +42,44 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     _website.dispose();
     _avatarUrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickAvatar() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    if (picked == null) return;
+
+    setState(() => _uploading = true);
+    try {
+      final bytes = await picked.readAsBytes();
+      final result = await context.read<AuthProvider>().api.uploadMedia(
+            bytes,
+            filename: picked.name,
+            contentType: picked.mimeType ?? 'image/jpeg',
+            limits: _limits,
+            folder: 'avatars',
+          );
+      _avatarUrl.text = result['url'] ?? '';
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Avatar uploaded')),
+        );
+      }
+    } on UploadValidationException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message), backgroundColor: Colors.red.shade700),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red.shade700),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
   }
 
   Future<void> _save() async {
@@ -84,6 +127,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             _field(_location, 'Location'),
             _field(_website, 'Website'),
             _field(_avatarUrl, 'Avatar URL'),
+            OutlinedButton.icon(
+              onPressed: _uploading ? null : _pickAvatar,
+              icon: _uploading
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.photo_camera_outlined),
+              label: Text(_uploading ? 'Uploading...' : 'Upload avatar photo'),
+            ),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _saving ? null : _save,

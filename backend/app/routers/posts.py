@@ -11,6 +11,10 @@ from app.utils.pagination import PaginationParams, apply_pagination, paginated
 router = APIRouter(tags=["Posts"])
 
 
+def _enum_val(value) -> str:
+    return value.value if hasattr(value, "value") else str(value)
+
+
 def _author_brief(user: User | None) -> AuthorBrief | None:
     if not user or not user.profile:
         return None
@@ -35,9 +39,9 @@ def _post_out(post: Post, current_user: User | None, db: Session) -> PostOut:
         id=post.id,
         author_id=post.author_id,
         community_id=post.community_id,
-        type=post.type.value,
+        type=_enum_val(post.type),
         body=post.body,
-        audience=post.audience.value,
+        audience=_enum_val(post.audience),
         status=post.status,
         image_url=post.image_url,
         created_at=post.created_at,

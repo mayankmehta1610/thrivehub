@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Image, Send } from 'lucide-react'
 import api from '../api/client'
 import Navbar from '../components/Navbar'
 import PostCard from '../components/PostCard'
+import { getUploadLimits } from '../utils/upload'
 
 export default function Feed() {
   const [config, setConfig] = useState(null)
@@ -12,7 +13,10 @@ export default function Feed() {
   const [loading, setLoading] = useState(true)
   const [newPost, setNewPost] = useState('')
   const [imageUrl, setImageUrl] = useState('')
+  const [uploadError, setUploadError] = useState('')
+  const [uploading, setUploading] = useState(false)
   const [sponsors, setSponsors] = useState([])
+  const fileInputRef = useRef(null)
 
   const loadFeed = useCallback(async () => {
     setLoading(true)
@@ -37,7 +41,25 @@ export default function Feed() {
     await api.createPost({ body: newPost, image_url: imageUrl || undefined })
     setNewPost('')
     setImageUrl('')
+    setUploadError('')
     loadFeed()
+  }
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadError('')
+    setUploading(true)
+    try {
+      const limits = getUploadLimits(config)
+      const result = await api.uploadMedia(file, limits)
+      setImageUrl(result.url)
+    } catch (err) {
+      setUploadError(err.message)
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
   }
 
   return (
@@ -65,8 +87,24 @@ export default function Feed() {
             placeholder="Image URL (optional - Unsplash/Pexels)"
             className="w-full mt-2 px-3 py-2 text-sm rounded-xl border border-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"
           />
+          {uploadError && (
+            <p className="mt-2 text-sm text-red-600">{uploadError}</p>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,video/*"
+            className="hidden"
+            onChange={handleFileSelect}
+          />
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-50">
-            <button type="button" className="p-2 rounded-xl text-slate-400 hover:bg-slate-50">
+            <button
+              type="button"
+              disabled={uploading}
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2 rounded-xl text-slate-400 hover:bg-slate-50 disabled:opacity-50"
+              title="Upload image or video (max 500KB / 2MB)"
+            >
               <Image className="w-5 h-5" />
             </button>
             <button type="submit" className="flex items-center gap-2 px-5 py-2 rounded-xl gradient-hero text-white font-medium text-sm">

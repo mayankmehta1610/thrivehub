@@ -331,6 +331,11 @@ class SearchResult(BaseModel):
     image_url: str | None = None
 
 
+class UploadLimits(BaseModel):
+    image_max_bytes: int = 512000
+    video_max_bytes: int = 2097152
+
+
 class PlatformConfigOut(BaseModel):
     app_name: str
     tagline: str
@@ -346,6 +351,7 @@ class PlatformConfigOut(BaseModel):
     featured_posts: list[FeaturedPostItem] = []
     sponsorships: list[SponsorshipBrief] = []
     stats: dict = {}
+    upload_limits: UploadLimits = UploadLimits()
 
 
 class ReportOut(BaseModel):

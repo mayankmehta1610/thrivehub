@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/upload_limits.dart';
 
 class ApiService {
   static const String baseUrl = String.fromEnvironment(
@@ -118,4 +119,43 @@ class ApiService {
       get('/sponsorships', {if (placement != null) 'placement': placement, 'page_size': '5'});
   Future<Map<String, dynamic>> getSubscriptionTiers() =>
       get('/subscriptions/tiers', {'page_size': '10'});
+
+  Future<Map<String, dynamic>> uploadMedia(
+    List<int> bytes, {
+    required String filename,
+    required String contentType,
+    UploadLimits? limits,
+    String folder = 'media',
+  }) async {
+    final effectiveLimits = limits ?? UploadLimits();
+    final error = validateUploadSize(
+      contentType: contentType,
+      sizeBytes: bytes.length,
+      limits: effectiveLimits,
+    );
+    if (error != null) throw UploadValidationException(error);
+
+    final uri = Uri.parse('$baseUrl/media/upload').replace(queryParameters: {'folder': folder});
+    final request = http.MultipartRequest('POST', uri)
+      ..headers['Authorization'] = 'Bearer $_token'
+      ..files.add(http.MultipartFile.fromBytes('file', bytes, filename: filename));
+
+    final streamed = await request.send();
+    final res = await http.Response.fromStream(streamed);
+    if (res.statusCode == 401) {
+      return await _refreshAndRetry(() => uploadMedia(
+            bytes,
+            filename: filename,
+            contentType: contentType,
+            limits: limits,
+            folder: folder,
+          ));
+    }
+    if (res.statusCode >= 400) {
+      final body = jsonDecode(res.body);
+      final detail = body is Map ? body['detail'] : null;
+      throw Exception(detail ?? 'Upload failed');
+    }
+    return jsonDecode(res.body) as Map<String, dynamic>;
+  }
 }

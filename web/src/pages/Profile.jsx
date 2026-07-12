@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   MapPin, Globe, UserPlus, UserMinus, Ban, VolumeX, Flag, Edit,
@@ -8,6 +8,7 @@ import api from '../api/client'
 import Navbar from '../components/Navbar'
 import PostCard from '../components/PostCard'
 import { useAuth } from '../context/AuthContext'
+import { getUploadLimits } from '../utils/upload'
 
 const SKILL_ICONS = {
   dance: '💃', standup: '🎤', sports: '⚽', football: '⚽', running: '🏃',
@@ -62,6 +63,9 @@ export default function Profile() {
   const [reportReason, setReportReason] = useState('')
   const [lightboxPhoto, setLightboxPhoto] = useState(null)
   const [postsLoading, setPostsLoading] = useState(true)
+  const [uploadError, setUploadError] = useState('')
+  const avatarFileRef = useRef(null)
+  const coverFileRef = useRef(null)
 
   useEffect(() => {
     api.getConfig().then((cfg) => {
@@ -148,6 +152,19 @@ export default function Profile() {
     const updated = await api.updateProfile(editForm)
     setProfile(updated)
     setEditing(false)
+    setUploadError('')
+  }
+
+  const handlePhotoUpload = async (file, field) => {
+    if (!file) return
+    setUploadError('')
+    try {
+      const limits = getUploadLimits(config)
+      const result = await api.uploadMedia(file, limits)
+      setEditForm((prev) => ({ ...prev, [field]: result.url }))
+    } catch (err) {
+      setUploadError(err.message)
+    }
   }
 
   const refreshPosts = async () => {
@@ -356,6 +373,39 @@ export default function Profile() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-md space-y-4 shadow-xl">
             <h3 className="text-lg font-bold text-slate-900">Edit Profile</h3>
+            {uploadError && (
+              <p className="text-sm text-red-600">{uploadError}</p>
+            )}
+            <div className="flex gap-2">
+              <input
+                ref={avatarFileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handlePhotoUpload(e.target.files?.[0], 'avatar_url')}
+              />
+              <button
+                type="button"
+                onClick={() => avatarFileRef.current?.click()}
+                className="px-3 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50"
+              >
+                Upload avatar
+              </button>
+              <input
+                ref={coverFileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handlePhotoUpload(e.target.files?.[0], 'cover_url')}
+              />
+              <button
+                type="button"
+                onClick={() => coverFileRef.current?.click()}
+                className="px-3 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50"
+              >
+                Upload cover
+              </button>
+            </div>
             {['display_name', 'bio', 'location', 'website', 'avatar_url', 'cover_url'].map((field) => (
               field === 'bio' ? (
                 <textarea

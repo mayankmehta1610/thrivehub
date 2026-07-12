@@ -1,3 +1,5 @@
+import { DEFAULT_UPLOAD_LIMITS, validateFileSize } from '../utils/upload'
+
 const API_BASE = import.meta.env.VITE_API_URL || '/api/v1'
 
 const NETWORK_ERROR =
@@ -349,7 +351,8 @@ class ApiClient {
   }
 
   // Media
-  async uploadMedia(file) {
+  async uploadMedia(file, limits = DEFAULT_UPLOAD_LIMITS) {
+    validateFileSize(file, limits)
     const form = new FormData()
     form.append('file', file)
     const headers = {}
@@ -361,7 +364,10 @@ class ApiClient {
       if (isNetworkError(err)) throw new Error(NETWORK_ERROR)
       throw err
     }
-    if (!res.ok) throw new Error('Upload failed')
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.detail || 'Upload failed')
+    }
     return res.json()
   }
 
