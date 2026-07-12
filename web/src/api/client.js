@@ -2,14 +2,49 @@ import { DEFAULT_UPLOAD_LIMITS, validateFileSize } from '../utils/upload'
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api/v1'
 
-const NETWORK_ERROR =
+export const NETWORK_ERROR =
   'Unable to reach the server. It may be waking up (free tier) — wait a moment and try again.'
 
-function isNetworkError(err) {
-  return err instanceof TypeError || err?.message === 'Failed to fetch'
+const MAX_RETRIES = 6
+
+export class NetworkError extends Error {
+  constructor(message = NETWORK_ERROR) {
+    super(message)
+    this.name = 'NetworkError'
+    this.isNetwork = true
+  }
 }
 
-async function fetchWithRetry(url, options = {}, retries = 3) {
+export class ApiError extends Error {
+  constructor(message, status) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+  }
+}
+
+function getHealthUrl() {
+  const apiUrl = import.meta.env.VITE_API_URL || '/api/v1'
+  if (apiUrl.startsWith('http')) {
+    return apiUrl.replace(/\/api\/v1\/?$/, '') + '/health'
+  }
+  return '/health'
+}
+
+function isNetworkError(err) {
+  return (
+    err instanceof TypeError ||
+    err?.name === 'AbortError' ||
+    err?.message === 'Failed to fetch' ||
+    err instanceof NetworkError
+  )
+}
+
+function backoffMs(attempt) {
+  return Math.min(1500 * 2 ** attempt, 15000)
+}
+
+async function fetchWithRetry(url, options = {}, retries = MAX_RETRIES) {
   let lastError
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
@@ -18,10 +53,42 @@ async function fetchWithRetry(url, options = {}, retries = 3) {
     } catch (err) {
       lastError = err
       if (!isNetworkError(err) || attempt === retries - 1) throw err
-      await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)))
+      await new Promise((r) => setTimeout(r, backoffMs(attempt)))
     }
   }
   throw lastError
+}
+
+/**
+ * Ping GET /health until the API responds or maxWaitMs elapses.
+ * Used before login/register and on landing config load (Render free tier cold start).
+ */
+export async function wakeApi({ onStatus, maxWaitMs = 60000 } = {}) {
+  const healthUrl = getHealthUrl()
+  const start = Date.now()
+  let attempt = 0
+
+  while (Date.now() - start < maxWaitMs) {
+    attempt += 1
+    onStatus?.('Waking up server...')
+    try {
+      const res = await fetch(healthUrl, {
+        method: 'GET',
+        signal: AbortSignal.timeout(10000),
+      })
+      if (res.ok) return true
+    } catch {
+      // keep retrying until maxWaitMs
+    }
+
+    const elapsed = Date.now() - start
+    if (elapsed >= maxWaitMs) break
+
+    const delay = backoffMs(attempt - 1)
+    await new Promise((r) => setTimeout(r, Math.min(delay, maxWaitMs - elapsed)))
+  }
+
+  return false
 }
 
 class ApiClient {
@@ -52,7 +119,7 @@ class ApiClient {
     try {
       res = await fetchWithRetry(`${API_BASE}${path}`, { ...options, headers })
     } catch (err) {
-      if (isNetworkError(err)) throw new Error(NETWORK_ERROR)
+      if (isNetworkError(err)) throw new NetworkError()
       throw err
     }
 
@@ -65,7 +132,7 @@ class ApiClient {
           body: JSON.stringify({ refresh_token: this.refreshToken }),
         })
       } catch (err) {
-        if (isNetworkError(err)) throw new Error(NETWORK_ERROR)
+        if (isNetworkError(err)) throw new NetworkError()
         throw err
       }
       if (refreshRes.ok) {
@@ -75,13 +142,13 @@ class ApiClient {
         res = await fetchWithRetry(`${API_BASE}${path}`, { ...options, headers })
       } else {
         this.clearTokens()
-        throw new Error('Session expired')
+        throw new ApiError('Session expired', 401)
       }
     }
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
-      throw new Error(err.detail || `Request failed: ${res.status}`)
+      throw new ApiError(err.detail || `Request failed: ${res.status}`, res.status)
     }
     if (res.status === 204) return null
     return res.json()
@@ -361,12 +428,12 @@ class ApiClient {
     try {
       res = await fetchWithRetry(`${API_BASE}/media/upload`, { method: 'POST', headers, body: form })
     } catch (err) {
-      if (isNetworkError(err)) throw new Error(NETWORK_ERROR)
+      if (isNetworkError(err)) throw new NetworkError()
       throw err
     }
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
-      throw new Error(err.detail || 'Upload failed')
+      throw new ApiError(err.detail || 'Upload failed', res.status)
     }
     return res.json()
   }

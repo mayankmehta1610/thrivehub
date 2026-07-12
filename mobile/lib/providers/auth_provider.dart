@@ -14,6 +14,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> init() async {
     await api.loadTokens();
     try {
+      await api.wakeApi();
       config = await api.getConfig();
       user = await api.getMe();
     } catch (_) {
@@ -23,8 +24,12 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> login(String email, String password) async {
-    await api.login(email, password);
+  Future<void> login(
+    String email,
+    String password, {
+    void Function(String message)? onWakeStatus,
+  }) async {
+    await api.login(email, password, onWakeStatus: onWakeStatus);
     user = await api.getMe();
     notifyListeners();
   }

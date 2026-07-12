@@ -78,3 +78,10 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
+
+  # Keep API warm on free tier (sleeps after ~15 min inactivity)
+  - type: cron
+    name: thrivehub-keepalive
+    schedule: "*/10 * * * *"
+    buildCommand: "true"
+    startCommand: "curl -sf https://thrivehub-api.onrender.com/health"

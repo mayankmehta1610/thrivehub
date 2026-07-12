@@ -4,7 +4,7 @@ import {
   ArrowRight, Users, Calendar, MessageCircle, Trophy,
   MapPin, ChevronLeft, ChevronRight, TrendingUp,
 } from 'lucide-react'
-import api from '../api/client'
+import api, { wakeApi } from '../api/client'
 import Navbar from '../components/Navbar'
 import SafeImage from '../components/SafeImage'
 import { DEFAULT_PLACEHOLDER } from '../utils/images'
@@ -75,7 +75,8 @@ export default function Landing() {
   const [config, setConfig] = useState(FALLBACK_CONFIG)
 
   useEffect(() => {
-    api.getConfig()
+    wakeApi()
+      .then(() => api.getConfig())
       .then((data) => setConfig({ ...FALLBACK_CONFIG, ...data }))
       .catch(() => {})
   }, [])
