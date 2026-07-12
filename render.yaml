@@ -4,6 +4,12 @@
 # Deploy: Dashboard → New → Blueprint → connect mayankmehta1610/thrivehub (branch: main).
 # PostgreSQL tables live in schema "thrivehub" (DATABASE_SCHEMA); created on API startup.
 #
+# Free-tier PostgreSQL: Render allows one free database per workspace. This blueprint does
+# NOT provision thrivehub-db. Reuse your existing DB (e.g. sumayacare360-db) and set
+# DATABASE_URL in the dashboard: thrivehub-api → Environment → Link Database, or paste
+# the Internal Database URL. ThriveHub uses schema "thrivehub" so it can share the same
+# Postgres instance as other apps without table collisions.
+#
 # R3/R4 optional integrations — set in Render dashboard (sync: false placeholders below):
 #   REDIS_URL          — external Redis (e.g. Upstash); falls back to in-memory cache
 #   S3_*               — S3-compatible media storage; falls back to local uploads/
@@ -11,13 +17,6 @@
 #   VITE_API_URL       — direct API URL for WebSocket messaging (see README)
 #
 # NEVER commit API keys or database passwords to git.
-
-databases:
-  - name: thrivehub-db
-    plan: free
-    databaseName: thrivehub
-    user: thrivehub
-    postgresMajorVersion: "16"
 
 services:
   # FastAPI backend
@@ -32,9 +31,7 @@ services:
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: thrivehub-db
-          property: connectionString
+        sync: false
       - key: DATABASE_SCHEMA
         value: thrivehub
       - key: SECRET_KEY
