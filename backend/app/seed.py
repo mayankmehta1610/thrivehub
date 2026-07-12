@@ -29,6 +29,7 @@ from app.models import (
     PostAudience,
     PostType,
     Profile,
+    ProfilePhoto,
     Reaction,
     Report,
     Sponsorship,
@@ -108,6 +109,132 @@ LOCATIONS = [
     "New York, NY", "Boston, MA", "Nashville, TN", "Phoenix, AZ",
 ]
 
+# Rich profile extensions keyed by username (upserted idempotently)
+RICH_PROFILES: dict[str, dict] = {
+    "mayank": {
+        "emails": ["mehta_mayankp@hotmail.com", "mayank@thrivehub.com", "mayank@"],
+        "password": "demo1234",
+        "display_name": "Mayank Mehta",
+        "verified": True,
+        "role": "member",
+        "bio": (
+            "Creative explorer at the intersection of dance, photography, and adventure. "
+            "I choreograph weekend workshops, chase golden-hour light across mountain trails, "
+            "and build communities where passion meets purpose. Always up for a salsa night "
+            "or a sunrise hike — let's create something memorable together."
+        ),
+        "location": "San Francisco, CA",
+        "website": "https://thrivehub.com",
+        "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400",
+        "cover_url": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1600",
+        "skills": ["dance", "photography", "adventure", "music", "fitness"],
+        "photos": [
+            ("https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800", "Salsa night energy"),
+            ("https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=800", "Golden hour portrait session"),
+            ("https://images.unsplash.com/photo-1551632811-561732d1e58e?w=800", "Summit sunrise hike"),
+            ("https://images.unsplash.com/photo-1511379938543-c1f69419868d?w=800", "Acoustic jam session"),
+            ("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800", "Alpine trail adventure"),
+        ],
+        "posts": [
+            ("Just wrapped an incredible salsa workshop — 40 dancers, one unforgettable night! Who's joining the next session?",
+             PostType.image, "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800"),
+            ("Caught this frame at Twin Peaks during last night's fog roll. Photography teaches you to see the world differently.",
+             PostType.image, "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800"),
+            ("Planning a weekend adventure trek along the coastal trail. DM me if you want in — all experience levels welcome!",
+             PostType.text, None),
+        ],
+    },
+    "alexrivera": {
+        "bio": "Marathon runner, trail explorer, and community builder. I believe every mile tells a story. Organizing group runs and outdoor meetups across the Bay Area.",
+        "skills": ["running", "adventure", "sports", "fitness"],
+        "photos": [
+            ("https://images.unsplash.com/photo-1452626038306-9d505387a3a8?w=800", "Marathon finish line"),
+            ("https://images.unsplash.com/photo-1476480862128-209bfaa8edc8?w=800", "Trail run at dawn"),
+            ("https://images.unsplash.com/photo-1522163182402-834f871fd851?w=800", "Climbing session"),
+        ],
+    },
+    "samchen": {
+        "bio": "Outdoor adventurer and certified trail guide. From coastal hikes to alpine summits — I live for the path less traveled.",
+        "skills": ["adventure", "hiking", "photography", "fitness"],
+        "photos": [
+            ("https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800", "Mountain vista"),
+            ("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800", "Alpine lake"),
+            ("https://images.unsplash.com/photo-1551632811-561732d1e58e?w=800", "Summit camp"),
+        ],
+    },
+    "jordanlee": {
+        "bio": "Weekend football organiser and sports enthusiast. Building pickup leagues and bringing neighbors together through the beautiful game.",
+        "skills": ["sports", "football", "fitness"],
+        "photos": [
+            ("https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800", "Match day"),
+            ("https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=800", "Team huddle"),
+        ],
+    },
+    "priyadance": {
+        "bio": "Salsa & contemporary dance instructor with 8+ years on stage. Teaching confidence through movement — beginners always welcome!",
+        "skills": ["dance", "music", "fitness"],
+        "photos": [
+            ("https://images.unsplash.com/photo-1504609773096-104ff2c73ba4?w=800", "Studio rehearsal"),
+            ("https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800", "Performance night"),
+            ("https://images.unsplash.com/photo-1545950250-29ebb58419f4?w=800", "Group class"),
+        ],
+    },
+    "marcuswebb": {
+        "bio": "Standup comedian and open mic regular. Turning awkward life moments into punchlines since 2019. Catch me at The Laugh Loft every Thursday.",
+        "skills": ["standup", "public_speaking", "music"],
+        "photos": [
+            ("https://images.unsplash.com/photo-1585699324551-f6c309eedeca?w=800", "Open mic night"),
+            ("https://images.unsplash.com/photo-1527224535757-9fc19466b1e5?w=800", "Writing session"),
+        ],
+    },
+    "miatorres": {
+        "bio": "Singer-songwriter and music teacher. Acoustic covers, original compositions, and vocal coaching for all ages.",
+        "skills": ["music", "public_speaking", "art"],
+        "photos": [
+            ("https://images.unsplash.com/photo-1511379938543-c1f69419868d?w=800", "Studio recording"),
+            ("https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800", "Live acoustic set"),
+        ],
+    },
+    "elenapark": {
+        "bio": "Home chef sharing global recipes and hosting community cook-offs. Korean BBQ enthusiast with a passion for fusion flavors.",
+        "skills": ["cooking", "art"],
+        "photos": [
+            ("https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800", "Korean BBQ night"),
+            ("https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800", "Farmers market haul"),
+            ("https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800", "Cook-off champion dish"),
+        ],
+    },
+    "chrislens": {
+        "bio": "Street & landscape photographer. Chasing light, framing stories. Leading golden-hour photo walks every month.",
+        "skills": ["photography", "art", "adventure"],
+        "photos": [
+            ("https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=800", "Waterfront golden hour"),
+            ("https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800", "Forest light"),
+            ("https://images.unsplash.com/photo-1477959858617-67f85ebb4e09?w=800", "City skyline"),
+            ("https://images.unsplash.com/photo-1516035069371-29a1b244cc00?w=800", "Street portrait"),
+        ],
+    },
+    "rileybrooks": {
+        "bio": "CrossFit coach and wellness advocate. PRs, meal prep, and mindset — helping people become their strongest selves.",
+        "skills": ["fitness", "sports", "coaching"],
+        "photos": [
+            ("https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800", "Gym session"),
+            ("https://images.unsplash.com/photo-1571019614242-c5c5dee9f50e?w=800", "Outdoor workout"),
+        ],
+    },
+    "sofiamendez": {
+        "bio": "Digital artist and mural painter. Bold colors, big energy. Turning blank walls into community landmarks.",
+        "skills": ["art", "photography"],
+        "photos": [
+            ("https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=800", "Latest mural"),
+            ("https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800", "Studio work in progress"),
+            ("https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=800", "Gallery opening"),
+        ],
+    },
+}
+
+SKILL_KEY_PREFIXES = ("skill_category:", "skill:", "sport:", "adventure:")
+
 
 def _upsert_master(db: Session, tenant_id: str, mtype: str, code: str, label: str,
                    desc: str | None, sort_order: int, metadata: dict | None = None) -> MasterValue:
@@ -133,10 +260,80 @@ def _upsert_master(db: Session, tenant_id: str, mtype: str, code: str, label: st
     return m
 
 
+def _resolve_skill_id(master_map: dict, code: str) -> str | None:
+    for prefix in SKILL_KEY_PREFIXES:
+        skill_id = master_map.get(f"{prefix}{code}")
+        if skill_id:
+            return skill_id
+    return None
+
+
+def _upsert_profile_fields(profile: Profile, data: dict, idx: int = 0) -> None:
+    """Update profile scalar fields from rich data dict."""
+    if data.get("display_name"):
+        profile.display_name = data["display_name"]
+    if data.get("bio"):
+        profile.bio = data["bio"]
+    if data.get("avatar_url"):
+        profile.avatar_url = data["avatar_url"]
+    elif not profile.avatar_url:
+        profile.avatar_url = AVATARS[idx % len(AVATARS)]
+    if data.get("cover_url"):
+        profile.cover_url = data["cover_url"]
+    elif not profile.cover_url:
+        profile.cover_url = COVERS[idx % len(COVERS)]
+    if data.get("location"):
+        profile.location = data["location"]
+    elif not profile.location:
+        profile.location = LOCATIONS[idx % len(LOCATIONS)]
+    if data.get("website"):
+        profile.website = data["website"]
+    if "verified" in data:
+        profile.is_verified = data["verified"]
+
+
+def _seed_profile_skills(db: Session, profile: Profile, skill_codes: list[str], master_map: dict) -> None:
+    for code in skill_codes:
+        skill_id = _resolve_skill_id(master_map, code)
+        if not skill_id:
+            continue
+        exists = db.query(UserSkill).filter(UserSkill.profile_id == profile.id, UserSkill.skill_id == skill_id).first()
+        if not exists:
+            db.add(UserSkill(profile_id=profile.id, skill_id=skill_id, level="advanced", years=3))
+
+
+def _seed_profile_photos(db: Session, profile: Profile, photos: list[tuple[str, str]]) -> None:
+    for i, (url, caption) in enumerate(photos):
+        exists = db.query(ProfilePhoto).filter(ProfilePhoto.profile_id == profile.id, ProfilePhoto.url == url).first()
+        if not exists:
+            db.add(ProfilePhoto(profile_id=profile.id, url=url, caption=caption, sort_order=i))
+
+
+def _find_user_by_username_or_email(db: Session, tenant_id: str, username: str, emails: list[str] | None = None) -> User | None:
+    profile = db.query(Profile).join(User).filter(
+        User.tenant_id == tenant_id, Profile.username == username,
+    ).first()
+    if profile:
+        return db.query(User).filter(User.id == profile.user_id).first()
+    for email in (emails or []):
+        user = db.query(User).filter(User.tenant_id == tenant_id, User.email == email).first()
+        if user:
+            return user
+    return None
+
+
 def _ensure_user(db: Session, tenant_id: str, email: str, pwd: str, name: str,
                  username: str, verified: bool, role: str, bio: str, idx: int) -> User:
     existing = db.query(User).filter(User.tenant_id == tenant_id, User.email == email).first()
     if existing:
+        profile = db.query(Profile).filter(Profile.user_id == existing.id).first()
+        rich = RICH_PROFILES.get(username, {})
+        if profile:
+            _upsert_profile_fields(profile, {"bio": bio, "verified": verified, **rich}, idx)
+            if rich.get("skills"):
+                _seed_profile_skills(db, profile, rich["skills"], _get_master_map(db, tenant_id))
+            if rich.get("photos"):
+                _seed_profile_photos(db, profile, rich["photos"])
         return existing
     u = User(
         tenant_id=tenant_id, email=email, password_hash=hash_password(pwd),
@@ -144,15 +341,117 @@ def _ensure_user(db: Session, tenant_id: str, email: str, pwd: str, name: str,
     )
     db.add(u)
     db.flush()
+    rich = RICH_PROFILES.get(username, {})
     db.add(Profile(
-        user_id=u.id, username=username, display_name=name, bio=bio,
-        avatar_url=AVATARS[idx % len(AVATARS)],
-        cover_url=COVERS[idx % len(COVERS)],
-        location=LOCATIONS[idx % len(LOCATIONS)],
-        is_verified=verified,
+        user_id=u.id, username=username, display_name=name,
+        bio=rich.get("bio") or bio,
+        avatar_url=rich.get("avatar_url") or AVATARS[idx % len(AVATARS)],
+        cover_url=rich.get("cover_url") or COVERS[idx % len(COVERS)],
+        location=rich.get("location") or LOCATIONS[idx % len(LOCATIONS)],
+        website=rich.get("website"),
+        is_verified=rich.get("verified", verified),
     ))
     db.flush()
+    profile = db.query(Profile).filter(Profile.user_id == u.id).first()
+    if profile and rich.get("skills"):
+        _seed_profile_skills(db, profile, rich["skills"], _get_master_map(db, tenant_id))
+    if profile and rich.get("photos"):
+        _seed_profile_photos(db, profile, rich["photos"])
     return u
+
+
+def _get_master_map(db: Session, tenant_id: str) -> dict:
+    return {
+        f"{m.master_type}:{m.code}": m.id
+        for m in db.query(MasterValue).filter(MasterValue.tenant_id == tenant_id).all()
+    }
+
+
+def _upsert_registered_user(db: Session, tenant_id: str, username: str, data: dict, master_map: dict) -> User | None:
+    """Upsert a registered user (e.g. @mayank) by username or email — idempotent."""
+    emails = data.get("emails", [])
+    user = _find_user_by_username_or_email(db, tenant_id, username, emails)
+    primary_email = emails[0] if emails else f"{username}@thrivehub.com"
+
+    if not user:
+        user = User(
+            tenant_id=tenant_id,
+            email=primary_email,
+            password_hash=hash_password(data.get("password", "demo1234")),
+            status=UserStatus.active,
+            role=data.get("role", "member"),
+        )
+        db.add(user)
+        db.flush()
+        profile = Profile(
+            user_id=user.id,
+            username=username,
+            display_name=data.get("display_name", username.title()),
+            bio=data.get("bio"),
+            avatar_url=data.get("avatar_url"),
+            cover_url=data.get("cover_url"),
+            location=data.get("location"),
+            website=data.get("website"),
+            is_verified=data.get("verified", False),
+        )
+        db.add(profile)
+        db.flush()
+    else:
+        profile = db.query(Profile).filter(Profile.user_id == user.id).first()
+        if not profile:
+            profile = Profile(user_id=user.id, username=username, display_name=data.get("display_name", username))
+            db.add(profile)
+            db.flush()
+        else:
+            if profile.username != username:
+                profile.username = username
+        _upsert_profile_fields(profile, data)
+
+    profile = db.query(Profile).filter(Profile.user_id == user.id).first()
+    if profile:
+        if data.get("skills"):
+            _seed_profile_skills(db, profile, data["skills"], master_map)
+        if data.get("photos"):
+            _seed_profile_photos(db, profile, data["photos"])
+    return user
+
+
+def seed_rich_profiles(db: Session, tenant_id: str, master_map: dict, users: list[User]) -> None:
+    """Upsert rich profile data for all demo users and registered users like @mayank."""
+    by_username = {}
+    for u in users:
+        p = db.query(Profile).filter(Profile.user_id == u.id).first()
+        if p:
+            by_username[p.username] = u
+
+    for username, data in RICH_PROFILES.items():
+        user = by_username.get(username)
+        if user:
+            profile = db.query(Profile).filter(Profile.user_id == user.id).first()
+            if profile:
+                _upsert_profile_fields(profile, data)
+                if data.get("skills"):
+                    _seed_profile_skills(db, profile, data["skills"], master_map)
+                if data.get("photos"):
+                    _seed_profile_photos(db, profile, data["photos"])
+        elif data.get("emails"):
+            _upsert_registered_user(db, tenant_id, username, data, master_map)
+
+    # Seed posts for users with rich post data
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    if not tenant:
+        return
+    for username, data in RICH_PROFILES.items():
+        posts = data.get("posts")
+        if not posts:
+            continue
+        user = by_username.get(username) or _find_user_by_username_or_email(
+            db, tenant_id, username, data.get("emails"),
+        )
+        if not user:
+            continue
+        for body, ptype, img in posts:
+            _ensure_post(db, tenant, user, body, ptype, img)
 
 
 def _ensure_community(db: Session, tenant, owner: User, name: str, slug: str, desc: str,
@@ -490,6 +789,7 @@ def seed_database():
         master_map = seed_platform_masters(db, tenant.id)
         users = seed_demo_users(db, tenant.id)
         seed_demo_content(db, tenant, users, master_map)
+        seed_rich_profiles(db, tenant.id, master_map, users)
         seed_supplemental(db, tenant=tenant, users=users, master_map=master_map)
         db.commit()
         print("Database seeded successfully.")
@@ -513,6 +813,7 @@ def seed_supplemental(db: Session, tenant=None, users=None, master_map=None):
 
     users = users or seed_demo_users(db, tenant.id)
     seed_demo_content(db, tenant, users, master_map)
+    seed_rich_profiles(db, tenant.id, master_map, users)
 
     if not db.query(SubscriptionTier).filter(SubscriptionTier.tenant_id == tenant.id).first():
         tiers = [

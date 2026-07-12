@@ -136,6 +136,20 @@ class Profile(Base):
 
     user: Mapped["User"] = relationship(back_populates="profile")
     skills: Mapped[list["UserSkill"]] = relationship(back_populates="profile", cascade="all, delete-orphan")
+    photos: Mapped[list["ProfilePhoto"]] = relationship(back_populates="profile", cascade="all, delete-orphan")
+
+
+class ProfilePhoto(Base):
+    __tablename__ = "profile_photos"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    profile_id: Mapped[str] = mapped_column(ForeignKey("profiles.id"), index=True)
+    url: Mapped[str] = mapped_column(String(512))
+    caption: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    profile: Mapped["Profile"] = relationship(back_populates="photos")
 
 
 class MasterValue(Base):

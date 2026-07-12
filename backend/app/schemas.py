@@ -41,12 +41,43 @@ class ProfileUpdate(ProfileBase):
     pass
 
 
+class UserSkillOut(BaseModel):
+    id: str
+    code: str
+    label: str
+    level: str | None = None
+    years: int | None = None
+    image_url: str | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class ProfilePhotoOut(BaseModel):
+    id: str
+    url: str
+    caption: str | None = None
+    sort_order: int = 0
+
+    model_config = {"from_attributes": True}
+
+
+class ProfilePhotoCreate(BaseModel):
+    url: str = Field(min_length=1, max_length=512)
+    caption: str | None = Field(default=None, max_length=255)
+    sort_order: int = 0
+
+
 class ProfileOut(ProfileBase):
     id: str
     user_id: str
     username: str
     is_verified: bool
     created_at: datetime
+    skills: list[UserSkillOut] = []
+    photos: list[ProfilePhotoOut] = []
+    follower_count: int = 0
+    following_count: int = 0
+    post_count: int = 0
 
     model_config = {"from_attributes": True}
 

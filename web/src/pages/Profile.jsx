@@ -1,10 +1,51 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { MapPin, Globe, UserPlus, UserMinus, Ban, VolumeX, Flag, Edit } from 'lucide-react'
+import { useParams, Link } from 'react-router-dom'
+import {
+  MapPin, Globe, UserPlus, UserMinus, Ban, VolumeX, Flag, Edit,
+  BadgeCheck, Camera, X, Users, FileText,
+} from 'lucide-react'
 import api from '../api/client'
 import Navbar from '../components/Navbar'
 import PostCard from '../components/PostCard'
 import { useAuth } from '../context/AuthContext'
+
+const SKILL_ICONS = {
+  dance: '💃', standup: '🎤', sports: '⚽', football: '⚽', running: '🏃',
+  adventure: '🏔️', hiking: '🥾', climbing: '🧗', music: '🎵', art: '🎨',
+  fitness: '💪', photography: '📷', cooking: '🍳', coaching: '🏆',
+  public_speaking: '🗣️', yoga: '🧘',
+}
+
+function skillBadgeClass(code) {
+  const key = `skill-badge-${code}`
+  const known = [
+    'dance', 'standup', 'sports', 'football', 'running', 'adventure',
+    'hiking', 'climbing', 'music', 'art', 'fitness', 'photography',
+    'cooking', 'coaching', 'public_speaking',
+  ]
+  return known.includes(code) ? key : 'skill-badge-default'
+}
+
+function PhotoLightbox({ photo, onClose }) {
+  if (!photo) return null
+  return (
+    <div className="lightbox-overlay animate-fade-in" onClick={onClose} role="dialog" aria-label="Photo preview">
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 p-2 rounded-full bg-white/10 text-white hover:bg-white/20"
+        aria-label="Close"
+      >
+        <X className="w-6 h-6" />
+      </button>
+      <div onClick={(e) => e.stopPropagation()} className="text-center">
+        <img src={photo.url} alt={photo.caption || 'Gallery photo'} />
+        {photo.caption && (
+          <p className="mt-3 text-white/90 text-sm max-w-lg mx-auto">{photo.caption}</p>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export default function Profile() {
   const { username } = useParams()
@@ -19,20 +60,45 @@ export default function Profile() {
   const [editForm, setEditForm] = useState({})
   const [showReport, setShowReport] = useState(false)
   const [reportReason, setReportReason] = useState('')
+  const [lightboxPhoto, setLightboxPhoto] = useState(null)
+  const [postsLoading, setPostsLoading] = useState(true)
 
   useEffect(() => {
-    api.getConfig().then(setConfig)
+    api.getConfig().then((cfg) => {
+      setConfig(cfg)
+      if (cfg?.primary_color) {
+        document.documentElement.style.setProperty('--primary', cfg.primary_color)
+      }
+      if (cfg?.accent_color) {
+        document.documentElement.style.setProperty('--accent', cfg.accent_color)
+      }
+    }).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    setProfile(null)
+    setPosts([])
+    setPostsLoading(true)
+
     api.getProfile(username).then((p) => {
       setProfile(p)
-      setEditForm({ display_name: p.display_name, bio: p.bio, location: p.location, website: p.website })
-    })
-    api.getPosts({ page_size: 20 }).then((data) => {
-      const filtered = data.items.filter((p) => p.author?.username === username)
-      setPosts(filtered)
-    })
+      setEditForm({
+        display_name: p.display_name,
+        bio: p.bio || '',
+        location: p.location || '',
+        website: p.website || '',
+        avatar_url: p.avatar_url || '',
+        cover_url: p.cover_url || '',
+      })
+      return api.getUserPosts(p.user_id, { page_size: 20 })
+    }).then((data) => {
+      setPosts(data?.items || [])
+    }).catch(console.error).finally(() => setPostsLoading(false))
   }, [username])
 
   const isOwn = currentUser?.profile?.username === username
+  const coverUrl = profile?.cover_url || config?.hero_image
+  const avatarUrl = profile?.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200'
 
   const toggleFollow = async () => {
     if (following) {
@@ -84,96 +150,260 @@ export default function Profile() {
     setEditing(false)
   }
 
-  if (!profile) return <div className="min-h-screen flex items-center justify-center">Loading...</div>
+  const refreshPosts = async () => {
+    if (!profile?.user_id) return
+    const data = await api.getUserPosts(profile.user_id, { page_size: 20 })
+    setPosts(data?.items || [])
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="animate-pulse text-slate-500">Loading profile…</div>
+      </div>
+    )
+  }
+
+  const skills = profile.skills || []
+  const photos = profile.photos || []
 
   return (
     <div className="min-h-screen bg-slate-50">
       <Navbar config={config} />
-      <div className="max-w-3xl mx-auto">
-        <div className="relative h-48 md:h-56">
-          <img src={profile.cover_url} alt="" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+
+      <div className="max-w-3xl mx-auto pb-10">
+        {/* Cover photo */}
+        <div className="profile-cover">
+          {coverUrl ? (
+            <img src={coverUrl} alt="" />
+          ) : (
+            <div className="w-full h-full gradient-hero" />
+          )}
+          <div className="profile-cover-overlay" />
         </div>
-        <div className="px-4 -mt-16 relative">
-          <div className="flex items-end gap-4">
-            <img src={profile.avatar_url} alt="" className="w-28 h-28 rounded-2xl object-cover ring-4 ring-white shadow-lg" />
-            <div className="flex-1 pb-2">
-              <h1 className="text-2xl font-bold text-white drop-shadow-lg flex items-center gap-2">
-                {profile.display_name}
-                {profile.is_verified && <span className="text-teal-300 text-sm">✓</span>}
-              </h1>
-              <p className="text-white/80 drop-shadow">@{profile.username}</p>
+
+        <div className="px-4">
+          {/* Header card — name & actions on solid white background */}
+          <div className="profile-header-card">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+              <img
+                src={avatarUrl}
+                alt={profile.display_name}
+                className="profile-avatar -mt-14 sm:-mt-16 shrink-0"
+              />
+              <div className="flex-1 min-w-0">
+                <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2 flex-wrap">
+                  {profile.display_name}
+                  {profile.is_verified && (
+                    <BadgeCheck className="w-5 h-5 text-sky-600" aria-label="Verified" />
+                  )}
+                </h1>
+                <p className="text-slate-500 font-medium">@{profile.username}</p>
+                <div className="flex flex-wrap gap-4 mt-2 text-sm text-slate-600">
+                  <span className="flex items-center gap-1">
+                    <Users className="w-4 h-4 text-slate-400" />
+                    <strong className="text-slate-800">{profile.follower_count ?? 0}</strong> followers
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <strong className="text-slate-800">{profile.following_count ?? 0}</strong> following
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <FileText className="w-4 h-4 text-slate-400" />
+                    <strong className="text-slate-800">{profile.post_count ?? posts.length}</strong> posts
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-2 shrink-0 self-start sm:self-end">
+                {isOwn ? (
+                  <button onClick={() => setEditing(true)} className="btn-edit-profile">
+                    <Edit className="w-4 h-4" /> Edit Profile
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={toggleFollow}
+                      className={`btn-follow ${following ? 'following' : ''}`}
+                    >
+                      {following
+                        ? <><UserMinus className="w-4 h-4" /> Unfollow</>
+                        : <><UserPlus className="w-4 h-4" /> Follow</>}
+                    </button>
+                    <button onClick={handleBlock} title="Block"
+                      className={`p-2 rounded-lg border ${blocked ? 'bg-red-50 text-red-600 border-red-200' : 'bg-white text-slate-500 border-slate-200'}`}>
+                      <Ban className="w-4 h-4" />
+                    </button>
+                    <button onClick={handleMute} title="Mute"
+                      className={`p-2 rounded-lg border ${muted ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-white text-slate-500 border-slate-200'}`}>
+                      <VolumeX className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setShowReport(true)} title="Report"
+                      className="p-2 rounded-lg border bg-white text-slate-500 border-slate-200">
+                      <Flag className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
-            {isOwn ? (
-              <button onClick={() => setEditing(true)}
-                className="flex items-center gap-2 px-5 py-2 rounded-xl font-medium text-sm mb-2 bg-white text-slate-700">
-                <Edit className="w-4 h-4" /> Edit Profile
-              </button>
+          </div>
+
+          {/* Bio card */}
+          <div className="profile-section">
+            <h2 className="profile-section-title">About</h2>
+            {profile.bio ? (
+              <p className="text-slate-700 leading-relaxed whitespace-pre-line">{profile.bio}</p>
             ) : (
-              <div className="flex gap-2 mb-2">
-                <button onClick={toggleFollow}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm ${
-                    following ? 'bg-slate-200 text-slate-700' : 'gradient-hero text-white'
-                  }`}>
-                  {following ? <><UserMinus className="w-4 h-4" /> Unfollow</> : <><UserPlus className="w-4 h-4" /> Follow</>}
-                </button>
-                <button onClick={handleBlock} title="Block"
-                  className={`p-2 rounded-xl ${blocked ? 'bg-red-100 text-red-600' : 'bg-white text-slate-500'}`}>
-                  <Ban className="w-4 h-4" />
-                </button>
-                <button onClick={handleMute} title="Mute"
-                  className={`p-2 rounded-xl ${muted ? 'bg-amber-100 text-amber-600' : 'bg-white text-slate-500'}`}>
-                  <VolumeX className="w-4 h-4" />
-                </button>
-                <button onClick={() => setShowReport(true)} title="Report"
-                  className="p-2 rounded-xl bg-white text-slate-500">
-                  <Flag className="w-4 h-4" />
-                </button>
+              <p className="text-slate-400 italic">
+                {isOwn ? 'Add a bio to tell your story.' : 'No bio yet.'}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-4 mt-4 text-sm text-slate-600">
+              {profile.location && (
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="w-4 h-4 text-slate-400" />
+                  {profile.location}
+                </span>
+              )}
+              {profile.website && (
+                <a
+                  href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-sky-700 hover:underline"
+                >
+                  <Globe className="w-4 h-4" />
+                  {profile.website.replace(/^https?:\/\//, '')}
+                </a>
+              )}
+            </div>
+          </div>
+
+          {/* Skills */}
+          {skills.length > 0 && (
+            <div className="profile-section">
+              <h2 className="profile-section-title">Skills & Interests</h2>
+              <div className="flex flex-wrap gap-2">
+                {skills.map((skill) => (
+                  <span
+                    key={skill.id}
+                    className={`skill-badge ${skillBadgeClass(skill.code)}`}
+                  >
+                    <span aria-hidden="true">{SKILL_ICONS[skill.code] || '✨'}</span>
+                    {skill.label}
+                    {skill.level && (
+                      <span className="opacity-70 font-normal text-xs">· {skill.level}</span>
+                    )}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Photo gallery */}
+          {photos.length > 0 && (
+            <div className="profile-section">
+              <h2 className="profile-section-title flex items-center gap-2">
+                <Camera className="w-5 h-5 text-slate-400" />
+                Photos
+              </h2>
+              <div className="photo-gallery">
+                {photos.map((photo) => (
+                  <button
+                    key={photo.id}
+                    type="button"
+                    className="photo-gallery-item"
+                    onClick={() => setLightboxPhoto(photo)}
+                    aria-label={photo.caption || 'View photo'}
+                  >
+                    <img src={photo.url} alt={photo.caption || ''} loading="lazy" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Posts */}
+          <div className="profile-section mt-4">
+            <h2 className="profile-section-title">Posts</h2>
+            {postsLoading ? (
+              <p className="text-slate-400 text-sm">Loading posts…</p>
+            ) : posts.length > 0 ? (
+              <div className="space-y-4 -mx-1">
+                {posts.map((post) => (
+                  <PostCard key={post.id} post={post} onUpdate={refreshPosts} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-slate-400">
+                <FileText className="w-10 h-10 mx-auto mb-2 opacity-40" />
+                <p>{isOwn ? "You haven't posted yet." : 'No posts yet.'}</p>
+                {isOwn && (
+                  <Link to="/feed" className="inline-block mt-3 text-sm font-medium text-sky-700 hover:underline">
+                    Go to feed to create a post
+                  </Link>
+                )}
               </div>
             )}
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mt-4">
-            <p className="text-slate-600">{profile.bio}</p>
-            <div className="flex flex-wrap gap-4 mt-3 text-sm text-slate-500">
-              {profile.location && <span className="flex items-center gap-1"><MapPin className="w-4 h-4" />{profile.location}</span>}
-              {profile.website && <span className="flex items-center gap-1"><Globe className="w-4 h-4" />{profile.website}</span>}
-            </div>
-          </div>
-
-          <div className="py-6 space-y-4">
-            <h2 className="text-lg font-bold">Posts</h2>
-            {posts.map((post) => <PostCard key={post.id} post={post} />)}
           </div>
         </div>
       </div>
 
+      {lightboxPhoto && (
+        <PhotoLightbox photo={lightboxPhoto} onClose={() => setLightboxPhoto(null)} />
+      )}
+
       {editing && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md space-y-4">
-            <h3 className="text-lg font-bold">Edit Profile</h3>
-            {['display_name', 'bio', 'location', 'website', 'avatar_url'].map((field) => (
-              <input key={field} value={editForm[field] || ''} placeholder={field.replace('_', ' ')}
-                onChange={(e) => setEditForm({ ...editForm, [field]: e.target.value })}
-                className="w-full px-4 py-2 rounded-xl border" />
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md space-y-4 shadow-xl">
+            <h3 className="text-lg font-bold text-slate-900">Edit Profile</h3>
+            {['display_name', 'bio', 'location', 'website', 'avatar_url', 'cover_url'].map((field) => (
+              field === 'bio' ? (
+                <textarea
+                  key={field}
+                  value={editForm[field] || ''}
+                  placeholder="Bio"
+                  rows={4}
+                  onChange={(e) => setEditForm({ ...editForm, [field]: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-400"
+                />
+              ) : (
+                <input
+                  key={field}
+                  value={editForm[field] || ''}
+                  placeholder={field.replace(/_/g, ' ')}
+                  onChange={(e) => setEditForm({ ...editForm, [field]: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-400"
+                />
+              )
             ))}
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => setEditing(false)} className="px-4 py-2 rounded-xl text-slate-600">Cancel</button>
-              <button onClick={saveProfile} className="px-4 py-2 rounded-xl gradient-hero text-white">Save</button>
+            <div className="flex gap-2 justify-end pt-2">
+              <button onClick={() => setEditing(false)} className="px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-50">
+                Cancel
+              </button>
+              <button onClick={saveProfile} className="btn-primary px-4 py-2 text-sm">
+                Save Changes
+              </button>
             </div>
           </div>
         </div>
       )}
 
       {showReport && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md space-y-4">
-            <h3 className="text-lg font-bold">Report User</h3>
-            <textarea value={reportReason} onChange={(e) => setReportReason(e.target.value)}
-              placeholder="Describe the issue..." rows={4} className="w-full px-4 py-2 rounded-xl border" />
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md space-y-4 shadow-xl">
+            <h3 className="text-lg font-bold text-slate-900">Report User</h3>
+            <textarea
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              placeholder="Describe the issue…"
+              rows={4}
+              className="w-full px-4 py-2 rounded-lg border border-slate-200"
+            />
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setShowReport(false)} className="px-4 py-2 rounded-xl text-slate-600">Cancel</button>
-              <button onClick={handleReport} className="px-4 py-2 rounded-xl bg-red-500 text-white">Submit Report</button>
+              <button onClick={() => setShowReport(false)} className="px-4 py-2 rounded-lg text-slate-600">Cancel</button>
+              <button onClick={handleReport} className="px-4 py-2 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700">
+                Submit Report
+              </button>
             </div>
           </div>
         </div>

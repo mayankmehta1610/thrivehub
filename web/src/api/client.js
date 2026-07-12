@@ -166,6 +166,26 @@ class ApiClient {
     return this.get(`/profiles/${username}`)
   }
 
+  getProfileSkills(username) {
+    return this.get(`/profiles/${username}/skills`)
+  }
+
+  getProfilePhotos(username) {
+    return this.get(`/profiles/${username}/photos`)
+  }
+
+  addProfilePhoto(data) {
+    return this.post('/profiles/me/photos', data)
+  }
+
+  deleteProfilePhoto(photoId) {
+    return this.delete(`/profiles/me/photos/${photoId}`)
+  }
+
+  getUserPosts(authorId, params = {}) {
+    return this.get('/posts', { author_id: authorId, ...params })
+  }
+
   updateProfile(data) {
     return this.patch('/profiles/me', data)
   }
