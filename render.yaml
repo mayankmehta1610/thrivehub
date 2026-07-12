@@ -1,8 +1,15 @@
-# ThriveHub — Render Blueprint
+# ThriveHub — Render Blueprint (R3/R4)
 # https://render.com/docs/blueprint-spec
 #
-# Deploy: Dashboard → New → Blueprint → connect this repo.
-# Secrets (SECRET_KEY, optional S3/FCM/Redis) use sync: false — set in Render dashboard.
+# Deploy: Dashboard → New → Blueprint → connect mayankmehta1610/thrivehub (branch: main).
+# PostgreSQL tables live in schema "thrivehub" (DATABASE_SCHEMA); created on API startup.
+#
+# R3/R4 optional integrations — set in Render dashboard (sync: false placeholders below):
+#   REDIS_URL          — external Redis (e.g. Upstash); falls back to in-memory cache
+#   S3_*               — S3-compatible media storage; falls back to local uploads/
+#   FCM_*              — Firebase push notifications
+#   VITE_API_URL       — direct API URL for WebSocket messaging (see README)
+#
 # NEVER commit API keys or database passwords to git.
 
 databases:

@@ -151,6 +151,7 @@ All list endpoints support: `?page=1&page_size=20&sort_by=field&sort_order=asc|d
 ```env
 # backend/.env
 DATABASE_URL=postgresql://user:pass@localhost/thrivehub
+DATABASE_SCHEMA=thrivehub
 SECRET_KEY=your-production-secret
 CORS_ORIGINS=https://yourdomain.com
 
@@ -166,7 +167,52 @@ S3_SECRET_KEY=minioadmin
 # Optional — FCM push notifications
 FCM_SERVER_KEY=your-fcm-server-key
 FCM_PROJECT_ID=your-firebase-project-id
+
+# web/.env — only needed for direct API / WebSocket access (see Render section)
+VITE_API_URL=http://localhost:8000/api/v1
 ```
+
+## Render Deployment
+
+Blueprint: [`render.yaml`](render.yaml) provisions PostgreSQL 16, the FastAPI API, and the Vite static site.
+
+### First-time setup
+
+1. [Render Dashboard](https://dashboard.render.com) → **New** → **Blueprint**
+2. Connect repo `mayankmehta1610/thrivehub`, branch `main`
+3. Review services: `thrivehub-db`, `thrivehub-api`, `thrivehub-web`
+4. After deploy, set optional secrets on **thrivehub-api** (Environment tab):
+
+| Variable | Purpose |
+|----------|---------|
+| `REDIS_URL` | External Redis URL (Render has no managed Redis on free tier; e.g. [Upstash](https://upstash.com)) |
+| `S3_ENDPOINT` | S3-compatible endpoint (e.g. Cloudflare R2, AWS S3) |
+| `S3_ACCESS_KEY` | S3 access key |
+| `S3_SECRET_KEY` | S3 secret key |
+| `S3_BUCKET` | Bucket name (default `thrivehub-media` in blueprint) |
+| `FCM_SERVER_KEY` | Firebase Cloud Messaging server key |
+| `FCM_PROJECT_ID` | Firebase project ID |
+
+5. On **thrivehub-web**, set for real-time messaging (WebSockets):
+
+| Variable | Value |
+|----------|-------|
+| `VITE_API_URL` | `https://thrivehub-api.onrender.com/api/v1` |
+
+REST calls work via the static-site `/api/*` proxy without `VITE_API_URL`, but **WebSocket chat requires `VITE_API_URL`** because Render's static proxy does not upgrade HTTP to WebSocket. Rebuild the web service after setting it.
+
+### Expected URLs (after blueprint deploy)
+
+| Service | URL |
+|---------|-----|
+| Web | https://thrivehub-web.onrender.com |
+| API | https://thrivehub-api.onrender.com |
+| API docs | https://thrivehub-api.onrender.com/docs |
+| Health | https://thrivehub-api.onrender.com/health |
+
+### PostgreSQL schema
+
+Production uses schema `thrivehub` (`DATABASE_SCHEMA` in blueprint). All R3/R4 tables (moderation, appeals, subscriptions, sponsorships, device tokens, AI flags, etc.) are created automatically on API startup via `init_database()`.
 
 ## Push Notification Setup
 
