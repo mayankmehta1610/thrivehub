@@ -68,9 +68,9 @@ services:
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
     envVars:
-      # Only needed if not using /api proxy (e.g. WebSocket). Leave unset to use relative /api/v1.
+      # web/public/_redirects mirrors blueprint routes when services are created via API (proxy type unsupported on POST /routes).
       - key: VITE_API_URL
-        sync: false
+        value: https://thrivehub-api.onrender.com/api/v1
     routes:
       - type: proxy
         source: /api/*
