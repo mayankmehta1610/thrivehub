@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, Users } from 'lucide-react'
+import { Plus, Users, Image as ImageIcon } from 'lucide-react'
+import toast from 'react-hot-toast'
 import api from '../api/client'
 import Navbar from '../components/Navbar'
 import DataTable from '../components/DataTable'
 import SafeImage from '../components/SafeImage'
 import { isValidImageUrl } from '../utils/images'
+import { getUploadLimits, getFileSizeError } from '../utils/upload'
 import { useRequireAuth } from '../hooks/useRequireAuth'
 import { AUTH_MESSAGES } from '../utils/authMessages'
 
@@ -20,7 +22,9 @@ export default function Communities() {
   const [sortOrder, setSortOrder] = useState('desc')
   const [search, setSearch] = useState('')
   const [showCreate, setShowCreate] = useState(false)
-  const [form, setForm] = useState({ name: '', slug: '', description: '' })
+  const [form, setForm] = useState({ name: '', slug: '', description: '', cover_url: '' })
+  const [uploading, setUploading] = useState(false)
+  const coverRef = useRef(null)
 
   const load = useCallback(async () => {
     const data = await api.getCommunities({ page, page_size: 10, sort_by: sortBy, sort_order: sortOrder, search })
@@ -33,13 +37,41 @@ export default function Communities() {
     load()
   }, [load])
 
+  const handleCoverUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const limits = getUploadLimits(config)
+    const sizeError = getFileSizeError(file, limits)
+    if (sizeError) {
+      toast.error(sizeError)
+      e.target.value = ''
+      return
+    }
+    setUploading(true)
+    try {
+      const result = await api.uploadMedia(file, limits)
+      setForm((f) => ({ ...f, cover_url: result.url }))
+    } catch (err) {
+      toast.error(err.message)
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
+  }
+
   const handleCreate = async (e) => {
     e.preventDefault()
     if (!requireAuth(AUTH_MESSAGES.createCommunity)) return
-    await api.createCommunity(form)
-    setShowCreate(false)
-    setForm({ name: '', slug: '', description: '' })
-    load()
+    try {
+      const created = await api.createCommunity({ ...form, cover_url: form.cover_url || undefined })
+      setShowCreate(false)
+      setForm({ name: '', slug: '', description: '', cover_url: '' })
+      toast.success('Community created — you are the admin')
+      if (created?.slug) navigate(`/communities/${created.slug}`)
+      else load()
+    } catch (err) {
+      toast.error(err?.message || 'Could not create community')
+    }
   }
 
   return (
@@ -96,6 +128,25 @@ export default function Communities() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <form onSubmit={handleCreate} className="bg-white rounded-2xl p-6 w-full max-w-md space-y-4">
             <h2 className="text-xl font-bold">Create Community</h2>
+
+            {/* Cover photo */}
+            <div>
+              {form.cover_url ? (
+                <div className="relative rounded-xl overflow-hidden border border-slate-100">
+                  <SafeImage src={form.cover_url} alt="" className="w-full h-32 object-cover" />
+                  <button type="button" onClick={() => setForm((f) => ({ ...f, cover_url: '' }))}
+                    className="absolute top-2 right-2 px-2 py-1 rounded-lg bg-black/60 text-white text-xs">Remove</button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => coverRef.current?.click()} disabled={uploading}
+                  className="w-full h-24 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 hover:border-violet-300 hover:text-violet-500 disabled:opacity-50">
+                  <ImageIcon className="w-6 h-6 mb-1" />
+                  <span className="text-sm">{uploading ? 'Uploading…' : 'Upload cover photo'}</span>
+                </button>
+              )}
+              <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
+            </div>
+
             {['name', 'slug', 'description'].map((f) => (
               <input key={f} placeholder={f} value={form[f]} onChange={(e) => setForm({ ...form, [f]: e.target.value })}
                 required={f !== 'description'} className="w-full px-4 py-2 rounded-xl border focus:outline-none focus:ring-2 focus:ring-violet-400" />

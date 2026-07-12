@@ -1016,6 +1016,7 @@ def seed_platform_masters(db: Session, tenant_id: str) -> dict:
         ("hero_subtitle", "Join vibrant communities for dance, comedy, sports, music & more", None),
         ("image_max_bytes", "512000", "Max image upload size in bytes (500 KB)"),
         ("video_max_bytes", "2097152", "Max video upload size in bytes (2 MB)"),
+        ("audio_max_bytes", "5242880", "Max audio upload size in bytes (5 MB)"),
     ]
     for code, label, desc in platform_configs:
         m = _upsert_master(db, tenant_id, "platform_config", code, label, desc, sort)

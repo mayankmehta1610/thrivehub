@@ -6,7 +6,7 @@ from app.database import get_db
 from app.deps import get_current_user, get_optional_user
 from app.models import Community, CommunityMember, MembershipRole, MembershipStatus, User
 from app.routers.posts import _author_brief
-from app.schemas import CommunityCreate, CommunityOut
+from app.schemas import CommunityCreate, CommunityMemberOut, CommunityMemberRoleUpdate, CommunityOut
 from app.utils.pagination import PaginationParams, apply_pagination, paginated
 
 router = APIRouter(prefix="/communities", tags=["Communities"])
@@ -18,10 +18,14 @@ def _community_out(community: Community, db: Session, user: User | None = None) 
         CommunityMember.status == MembershipStatus.active,
     ).scalar() or 0
     is_member = False
+    my_role = None
     if user:
-        is_member = db.query(CommunityMember.id).filter(
+        membership = db.query(CommunityMember).filter(
             CommunityMember.community_id == community.id, CommunityMember.user_id == user.id
-        ).first() is not None
+        ).first()
+        if membership:
+            is_member = True
+            my_role = membership.role.value if hasattr(membership.role, "value") else membership.role
     return CommunityOut(
         id=community.id,
         name=community.name,
@@ -34,6 +38,7 @@ def _community_out(community: Community, db: Session, user: User | None = None) 
         created_at=community.created_at,
         owner=_author_brief(community.owner),
         is_member=is_member,
+        my_role=my_role,
     )
 
 
@@ -90,7 +95,7 @@ def create_community(payload: CommunityCreate, user: User = Depends(get_current_
         .filter(Community.id == community.id)
         .first()
     )
-    return _community_out(community, db)
+    return _community_out(community, db, user)
 
 
 @router.get("/{slug}", response_model=CommunityOut)
@@ -138,3 +143,73 @@ def leave_community(slug: str, user: User = Depends(get_current_user), db: Sessi
     ).delete()
     db.commit()
     return {"status": "left"}
+
+
+def _require_community(slug: str, db: Session) -> Community:
+    community = db.query(Community).filter(Community.slug == slug).first()
+    if not community:
+        raise HTTPException(status_code=404, detail="Community not found")
+    return community
+
+
+def _is_community_admin(db: Session, community_id: str, user_id: str) -> bool:
+    m = (
+        db.query(CommunityMember)
+        .filter(CommunityMember.community_id == community_id, CommunityMember.user_id == user_id)
+        .first()
+    )
+    return bool(m and (m.role == MembershipRole.admin or m.role == MembershipRole.moderator))
+
+
+@router.get("/{slug}/members", response_model=list[CommunityMemberOut])
+def list_members(slug: str, db: Session = Depends(get_db)):
+    community = _require_community(slug, db)
+    members = (
+        db.query(CommunityMember)
+        .options(joinedload(CommunityMember.user).joinedload(User.profile))
+        .filter(CommunityMember.community_id == community.id, CommunityMember.status == MembershipStatus.active)
+        .all()
+    )
+    return [
+        CommunityMemberOut(
+            user=_author_brief(m.user),
+            role=m.role.value if hasattr(m.role, "value") else m.role,
+            status=m.status.value if hasattr(m.status, "value") else m.status,
+        )
+        for m in members
+    ]
+
+
+@router.patch("/{slug}/members/{user_id}", response_model=CommunityMemberOut)
+def update_member_role(
+    slug: str,
+    user_id: str,
+    payload: CommunityMemberRoleUpdate,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    community = _require_community(slug, db)
+    # Only a community admin (or the platform owner) can change roles.
+    if community.owner_id != user.id and not _is_community_admin(db, community.id, user.id):
+        raise HTTPException(status_code=403, detail="Only community admins can manage roles")
+    try:
+        new_role = MembershipRole(payload.role)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid role")
+
+    member = (
+        db.query(CommunityMember)
+        .options(joinedload(CommunityMember.user).joinedload(User.profile))
+        .filter(CommunityMember.community_id == community.id, CommunityMember.user_id == user_id)
+        .first()
+    )
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    member.role = new_role
+    db.commit()
+    db.refresh(member)
+    return CommunityMemberOut(
+        user=_author_brief(member.user),
+        role=member.role.value if hasattr(member.role, "value") else member.role,
+        status=member.status.value if hasattr(member.status, "value") else member.status,
+    )

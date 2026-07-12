@@ -8,7 +8,7 @@ import EngagementModal from './EngagementModal'
 import { useAuth } from '../context/AuthContext'
 import { useRequireAuth } from '../hooks/useRequireAuth'
 import { AUTH_MESSAGES } from '../utils/authMessages'
-import { isValidImageUrl, isVideoUrl } from '../utils/images'
+import { isValidImageUrl, isVideoUrl, isAudioUrl } from '../utils/images'
 
 export default function PostCard({ post, onUpdate, isOwn = false, linkToDetail = true, defaultOpenComments = false }) {
   const { user } = useAuth()
@@ -176,7 +176,13 @@ export default function PostCard({ post, onUpdate, isOwn = false, linkToDetail =
           )}
         </div>
 
-        {isValidImageUrl(p.image_url) && (
+        {isAudioUrl(p.image_url) && (
+          <div className="px-4 pb-3">
+            <audio src={p.image_url} controls className="w-full" />
+          </div>
+        )}
+
+        {isValidImageUrl(p.image_url) && !isAudioUrl(p.image_url) && (
           isVideoUrl(p.image_url) ? (
             <video src={p.image_url} controls className="w-full max-h-96 bg-black" />
           ) : linkToDetail ? (

@@ -17,8 +17,8 @@ async def upload_media(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if not file.content_type or not file.content_type.startswith(("image/", "video/")):
-        raise HTTPException(status_code=400, detail="Only image and video files are allowed")
+    if not file.content_type or not file.content_type.startswith(("image/", "video/", "audio/")):
+        raise HTTPException(status_code=400, detail="Only image, video and audio files are allowed")
 
     content = await file.read()
     limits = get_upload_limits(db)

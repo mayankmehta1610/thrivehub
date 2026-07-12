@@ -295,8 +295,19 @@ class CommunityOut(BaseModel):
     created_at: datetime
     owner: AuthorBrief | None = None
     is_member: bool = False
+    my_role: str | None = None  # admin | moderator | member | None
 
     model_config = {"from_attributes": True}
+
+
+class CommunityMemberOut(BaseModel):
+    user: AuthorBrief | None = None
+    role: str
+    status: str
+
+
+class CommunityMemberRoleUpdate(BaseModel):
+    role: str  # admin | moderator | member
 
 
 class EventCreate(BaseModel):
@@ -390,6 +401,7 @@ class SearchResult(BaseModel):
 class UploadLimits(BaseModel):
     image_max_bytes: int = 512000
     video_max_bytes: int = 2097152
+    audio_max_bytes: int = 5242880
 
 
 class PlatformConfigOut(BaseModel):

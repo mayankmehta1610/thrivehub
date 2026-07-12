@@ -143,6 +143,21 @@ def get_feed(
 
 @router.post("/posts", response_model=PostOut, status_code=201)
 def create_post(payload: PostCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if payload.community_id:
+        from app.models import CommunityMember, MembershipStatus
+
+        member = (
+            db.query(CommunityMember)
+            .filter(
+                CommunityMember.community_id == payload.community_id,
+                CommunityMember.user_id == user.id,
+                CommunityMember.status == MembershipStatus.active,
+            )
+            .first()
+        )
+        if not member:
+            raise HTTPException(status_code=403, detail="Join this community to post in it")
+
     post = Post(
         tenant_id=user.tenant_id,
         author_id=user.id,

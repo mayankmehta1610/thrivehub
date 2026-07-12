@@ -5,6 +5,7 @@ from app.models import MasterValue
 
 DEFAULT_IMAGE_MAX_BYTES = 512000
 DEFAULT_VIDEO_MAX_BYTES = 2097152
+DEFAULT_AUDIO_MAX_BYTES = 5242880  # 5 MB
 
 
 def get_upload_limits(db: Session) -> dict[str, int]:
@@ -13,7 +14,7 @@ def get_upload_limits(db: Session) -> dict[str, int]:
         db.query(MasterValue)
         .filter(
             MasterValue.master_type == "platform_config",
-            MasterValue.code.in_(["image_max_bytes", "video_max_bytes"]),
+            MasterValue.code.in_(["image_max_bytes", "video_max_bytes", "audio_max_bytes"]),
             MasterValue.status == "active",
         )
         .all()
@@ -31,6 +32,7 @@ def get_upload_limits(db: Session) -> dict[str, int]:
     return {
         "image_max_bytes": _parse_int(config.get("image_max_bytes"), DEFAULT_IMAGE_MAX_BYTES),
         "video_max_bytes": _parse_int(config.get("video_max_bytes"), DEFAULT_VIDEO_MAX_BYTES),
+        "audio_max_bytes": _parse_int(config.get("audio_max_bytes"), DEFAULT_AUDIO_MAX_BYTES),
     }
 
 
@@ -43,5 +45,8 @@ def validate_upload_size(content_type: str | None, size: int, limits: dict[str, 
     elif content_type.startswith("video/"):
         if size > limits["video_max_bytes"]:
             raise HTTPException(status_code=413, detail="Video must be under 2MB")
+    elif content_type.startswith("audio/"):
+        if size > limits.get("audio_max_bytes", DEFAULT_AUDIO_MAX_BYTES):
+            raise HTTPException(status_code=413, detail="Audio must be under 5MB")
     else:
-        raise HTTPException(status_code=400, detail="Only image and video files are allowed")
+        raise HTTPException(status_code=400, detail="Only image, video and audio files are allowed")

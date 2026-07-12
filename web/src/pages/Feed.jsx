@@ -5,7 +5,7 @@ import api from '../api/client'
 import Navbar from '../components/Navbar'
 import PostCard from '../components/PostCard'
 import SafeImage from '../components/SafeImage'
-import { isValidImageUrl, isVideoUrl } from '../utils/images'
+import { isValidImageUrl, isVideoUrl, isAudioUrl } from '../utils/images'
 import { SOCIAL_META } from '../utils/social'
 import { getUploadLimits, getFileSizeError } from '../utils/upload'
 import { useAuth } from '../context/AuthContext'
@@ -119,9 +119,11 @@ export default function Feed() {
           />
           {imageUrl && (
             <div className="mt-2 rounded-xl overflow-hidden border border-slate-100">
-              {isVideoUrl(imageUrl)
-                ? <video src={imageUrl} controls className="w-full max-h-64 bg-black" />
-                : <SafeImage src={imageUrl} alt="" className="w-full max-h-64 object-cover" />}
+              {isAudioUrl(imageUrl)
+                ? <audio src={imageUrl} controls className="w-full" />
+                : isVideoUrl(imageUrl)
+                  ? <video src={imageUrl} controls className="w-full max-h-64 bg-black" />
+                  : <SafeImage src={imageUrl} alt="" className="w-full max-h-64 object-cover" />}
             </div>
           )}
           <input
@@ -136,7 +138,7 @@ export default function Feed() {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*,video/*"
+            accept="image/*,video/*,audio/*"
             className="hidden"
             onChange={handleFileSelect}
           />
@@ -174,9 +176,9 @@ export default function Feed() {
                 fileInputRef.current?.click()
               }}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-500 hover:bg-slate-50 disabled:opacity-50 text-sm font-medium"
-              title="Upload a photo or video (max 500 KB image / 2 MB video)"
+              title="Upload a photo, video or audio file (500 KB image / 2 MB video / 5 MB audio)"
             >
-              <Image className="w-5 h-5" /> {uploading ? 'Uploading…' : 'Photo / Video'}
+              <Image className="w-5 h-5" /> {uploading ? 'Uploading…' : 'Photo / Video / Audio'}
             </button>
             <button
               type="submit"

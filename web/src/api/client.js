@@ -367,6 +367,14 @@ class ApiClient {
     return this.delete(`/communities/${slug}/leave`)
   }
 
+  getCommunityMembers(slug) {
+    return this.get(`/communities/${slug}/members`)
+  }
+
+  updateCommunityMemberRole(slug, userId, role) {
+    return this.patch(`/communities/${slug}/members/${userId}`, { role })
+  }
+
   // Events
   getEvents(params) {
     return this.get('/events', params)
