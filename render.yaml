@@ -79,9 +79,12 @@ services:
         source: /*
         destination: /index.html
 
-  # Keep API warm on free tier (sleeps after ~15 min inactivity)
+  # Keep API warm (Render cron jobs require a paid plan — see backend/scripts/keepalive.md)
   - type: cron
     name: thrivehub-keepalive
+    runtime: python
+    region: oregon
+    rootDir: backend
     schedule: "*/10 * * * *"
     buildCommand: "true"
-    startCommand: "curl -sf https://thrivehub-api.onrender.com/health"
+    startCommand: 'python -c "import urllib.request; urllib.request.urlopen(''https://thrivehub-api.onrender.com/health'').read()"'

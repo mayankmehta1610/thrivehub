@@ -16,7 +16,7 @@ Render free-tier web services spin down after ~15 minutes of inactivity. Cold st
 
 After pushing to `main`, sync the Blueprint in the Render dashboard (or let auto-deploy pick up the cron service).
 
-**Note:** Render cron jobs require a paid workspace plan in some accounts. If the cron service fails to create, use an external pinger below.
+**Note:** Render cron jobs require a paid workspace (API returns HTTP 402 on free tier). If the cron service fails to create, use an external pinger below or add a card at [Render Billing](https://dashboard.render.com/billing).
 
 ## External alternatives
 

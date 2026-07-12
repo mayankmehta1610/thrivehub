@@ -28,7 +28,7 @@ function getHealthUrl() {
   if (apiUrl.startsWith('http')) {
     return apiUrl.replace(/\/api\/v1\/?$/, '') + '/health'
   }
-  return '/health'
+  return 'http://localhost:8000/health'
 }
 
 function isNetworkError(err) {
