@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'api_service.dart';
+import '../services/api_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final ApiService api = ApiService();
@@ -28,6 +28,11 @@ class AuthProvider extends ChangeNotifier {
   Future<void> logout() async {
     await api.clearTokens();
     user = null;
+    notifyListeners();
+  }
+
+  Future<void> refreshUser() async {
+    user = await api.getMe();
     notifyListeners();
   }
 }

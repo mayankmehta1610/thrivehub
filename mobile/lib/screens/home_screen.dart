@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'communities_screen.dart';
 import 'events_screen.dart';
+import 'messages_screen.dart';
 import 'notifications_screen.dart';
+import 'profile_edit_screen.dart';
 import 'search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -17,6 +19,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _tab = 0;
   List<dynamic> _posts = [];
+  List<dynamic> _sponsors = [];
   bool _loading = true;
   final _postController = TextEditingController();
 
@@ -29,8 +32,13 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadFeed() async {
     setState(() => _loading = true);
     try {
-      final data = await context.read<AuthProvider>().api.getFeed();
-      setState(() => _posts = data['items'] ?? []);
+      final api = context.read<AuthProvider>().api;
+      final data = await api.getFeed();
+      final sponsors = await api.getSponsorships(placement: 'feed_banner');
+      setState(() {
+        _posts = data['items'] ?? [];
+        _sponsors = sponsors['items'] ?? [];
+      });
     } finally {
       setState(() => _loading = false);
     }
@@ -53,6 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _buildFeed(),
       const CommunitiesScreen(),
       const EventsScreen(),
+      const MessagesScreen(),
       const NotificationsScreen(),
       const SearchScreen(),
     ];
@@ -67,11 +76,14 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         foregroundColor: Colors.white,
         actions: [
-          CircleAvatar(
-            backgroundImage: user?['profile']?['avatar_url'] != null
-                ? CachedNetworkImageProvider(user!['profile']['avatar_url'])
-                : null,
-            child: user?['profile']?['avatar_url'] == null ? const Icon(Icons.person) : null,
+          GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileEditScreen())),
+            child: CircleAvatar(
+              backgroundImage: user?['profile']?['avatar_url'] != null
+                  ? CachedNetworkImageProvider(user!['profile']['avatar_url'])
+                  : null,
+              child: user?['profile']?['avatar_url'] == null ? const Icon(Icons.person) : null,
+            ),
           ),
           IconButton(icon: const Icon(Icons.logout), onPressed: () => auth.logout()),
           const SizedBox(width: 8),
@@ -85,6 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
           NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Feed'),
           NavigationDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups), label: 'Groups'),
           NavigationDestination(icon: Icon(Icons.event_outlined), selectedIcon: Icon(Icons.event), label: 'Events'),
+          NavigationDestination(icon: Icon(Icons.chat_outlined), selectedIcon: Icon(Icons.chat), label: 'Messages'),
           NavigationDestination(icon: Icon(Icons.notifications_outlined), selectedIcon: Icon(Icons.notifications), label: 'Alerts'),
           NavigationDestination(icon: Icon(Icons.search_outlined), selectedIcon: Icon(Icons.search), label: 'Search'),
         ],
@@ -98,6 +111,24 @@ class _HomeScreenState extends State<HomeScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          if (_sponsors.isNotEmpty)
+            Card(
+              clipBehavior: Clip.antiAlias,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_sponsors[0]['image_url'] != null)
+                    CachedNetworkImage(imageUrl: _sponsors[0]['image_url'], height: 100, width: double.infinity, fit: BoxFit.cover),
+                  Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Text('Sponsored · ${_sponsors[0]['sponsor_name'] ?? ''}',
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                  ),
+                ],
+              ),
+            ),
+          if (_sponsors.isNotEmpty) const SizedBox(height: 12),
           Card(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Padding(
@@ -150,6 +181,8 @@ class _PostCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 0,
+      color: Colors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

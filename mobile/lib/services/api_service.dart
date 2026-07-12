@@ -96,4 +96,26 @@ class ApiService {
   Future<Map<String, dynamic>> createPost(String body, {String? imageUrl}) =>
       post('/posts', {'body': body, if (imageUrl != null) 'image_url': imageUrl});
   Future<void> reactPost(String postId) => post('/posts/$postId/reactions', {'reaction_type': 'like'});
+
+  Future<Map<String, dynamic>> getConversations({int page = 1}) =>
+      get('/messages/conversations', {'page': '$page', 'page_size': '50'});
+  Future<Map<String, dynamic>> getMessages(String convId, {int page = 1}) =>
+      get('/messages/conversations/$convId/messages', {'page': '$page', 'page_size': '100'});
+  Future<void> sendMessage(String convId, String body) =>
+      post('/messages/conversations/$convId/messages', {'body': body});
+
+  Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> data) async {
+    final res = await http.patch(
+      Uri.parse('$baseUrl/profiles/me'),
+      headers: _headers,
+      body: jsonEncode(data),
+    );
+    if (res.statusCode >= 400) throw Exception(jsonDecode(res.body)['detail'] ?? 'Update failed');
+    return jsonDecode(res.body);
+  }
+
+  Future<Map<String, dynamic>> getSponsorships({String? placement}) =>
+      get('/sponsorships', {if (placement != null) 'placement': placement, 'page_size': '5'});
+  Future<Map<String, dynamic>> getSubscriptionTiers() =>
+      get('/subscriptions/tiers', {'page_size': '10'});
 }

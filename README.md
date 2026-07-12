@@ -16,31 +16,50 @@ ThriveHub/
 
 | Layer | Technology |
 |-------|-----------|
-| Backend API | FastAPI, SQLAlchemy, JWT auth |
+| Backend API | FastAPI, SQLAlchemy, JWT auth, WebSockets |
 | Database | SQLite (dev), PostgreSQL-ready schema |
+| Cache | Redis (optional) with in-memory fallback |
+| Storage | S3-compatible (optional) with local `uploads/` fallback |
 | Web | React 19, Vite, Tailwind CSS 4 |
 | Mobile | Flutter, Provider, Material 3 |
-| Images | Unsplash URLs (seeded in DB) |
+| Push | FCM (Android), APNs via FCM (iOS — documented) |
 
 ## Features Implemented
 
 ### Core (R1 - Community Core)
 - **Auth**: Register, login, JWT refresh tokens
-- **Profiles**: Public profiles, avatars, bios, follow/unfollow, verification badges
+- **Profiles**: Public profiles, avatars, bios, follow/unfollow, verification badges, profile editing
 - **Posts & Feed**: Create posts, image posts, personalized feed, reactions (like/celebrate), comments
 - **Communities**: Create, join, browse, community detail pages
 - **Events**: Create, register, browse with capacity tracking
-- **Messaging**: Direct conversations, send/receive messages
-- **Notifications**: In-app notification center, mark read
+- **Messaging**: Direct conversations, send/receive messages, **WebSocket real-time**
+- **Notifications**: In-app notification center, mark read, push notification hooks
 - **Search**: Cross-entity search (profiles, communities, events, posts)
-- **Admin Portal**: Master data management, user listing (admin role)
+- **Admin Portal**: Master data, users, moderation queue, appeals, AI flags, audit log
 
-### Data & API
-- All content from database — no hard-coded lists
-- Server-side pagination, sorting, searching on all list endpoints
-- Client-side pagination, sorting, searching via reusable `DataTable` component (web)
-- Configurable platform branding from `master_values` table
-- Seed data: demo users, posts, communities, events, messages, notifications
+### Trust & Messaging (R3)
+- **Moderation queues**: Report workflow with admin review (open → reviewing → resolved/dismissed)
+- **Appeals**: Users can appeal moderation actions; admin approve/reject
+- **Block/Mute users**: REST API + UI on profile pages
+- **WebSocket messaging**: Live chat at `/api/v1/ws/messages/{conversation_id}`
+- **Push notifications**: FCM device registration, setup docs at `/api/v1/push/setup`
+- **AI moderation hook**: Flag content API + admin review queue (stub classifier)
+
+### Commercial & AI (R4)
+- **Subscription tiers**: DB-driven plans (Free, Pro, Elite) — no hard-coded pricing
+- **Sponsorships**: DB-driven ad placeholders shown in feed
+- **AI moderation**: `POST /api/v1/ai/flag` endpoint + admin review queue
+
+### Infrastructure
+- **Redis caching**: Optional; auto-falls back to in-memory cache in dev
+- **S3 media upload**: `POST /api/v1/media/upload` with local `uploads/` fallback
+- **Audit logging**: All admin moderation actions logged with actor, IP, timestamp
+
+### Mobile (Flutter)
+- Feed, communities, events, notifications, search
+- **Messages screen** with conversation list and chat
+- **Profile editing** screen
+- Sponsorship banners, Material 3 polish matching web theme
 
 ## Quick Start
 
@@ -48,6 +67,8 @@ ThriveHub/
 - Python 3.12+
 - Node.js 18+
 - Flutter 3.x (for mobile)
+- Redis (optional, for caching)
+- MinIO/S3 (optional, for media storage)
 
 ### 1. Backend API
 
@@ -65,6 +86,8 @@ uvicorn app.main:app --reload --port 8000
 ```
 
 API docs: [http://localhost:8000/docs](http://localhost:8000/docs)
+
+**Note:** After upgrading schema, delete `backend/thrivehub.db` for a fresh seed, or restart — SQLite migrations run automatically for new columns.
 
 ### 2. Web Frontend
 
@@ -85,14 +108,14 @@ flutter run
 ```
 
 For Android emulator, API defaults to `http://10.0.2.2:8000/api/v1`.
-For physical device, use: `flutter run --dart-define=API_URL=http://YOUR_IP:8000/api/v1`
+For physical device: `flutter run --dart-define=API_URL=http://YOUR_IP:8000/api/v1`
 
 ## Demo Accounts
 
 | Email | Password | Role |
 |-------|----------|------|
 | admin@thrivehub.com | admin123 | Admin |
-| alex@thrivehub.com | demo1234 | Member |
+| alex@thrivehub.com | demo1234 | Member (Pro tier) |
 | sam@thrivehub.com | demo1234 | Member |
 | jordan@thrivehub.com | demo1234 | Member |
 
@@ -107,133 +130,80 @@ For physical device, use: `flutter run --dart-define=API_URL=http://YOUR_IP:8000
 | Communities | `/api/v1/communities/*` | CRUD, join/leave |
 | Events | `/api/v1/events/*` | CRUD, register |
 | Messages | `/api/v1/messages/*` | Conversations, messages |
+| WebSocket | `/api/v1/ws/messages/{id}` | Real-time messaging |
 | Notifications | `/api/v1/notifications/*` | List, mark read |
 | Search | `/api/v1/search` | Cross-entity search |
+| Trust | `/api/v1/trust/*` | Block, mute, appeals |
+| Reports | `/api/v1/reports` | Submit content reports |
+| Moderation | `/api/v1/admin/moderation/*` | Queue, appeals, AI flags, audit |
+| Subscriptions | `/api/v1/subscriptions/*` | DB-driven tiers |
+| Sponsorships | `/api/v1/sponsorships` | DB-driven ad placements |
+| AI | `/api/v1/ai/*` | Content flagging hook |
+| Media | `/api/v1/media/upload` | S3/local file upload |
+| Push | `/api/v1/push/*` | Device registration, setup docs |
 | Config | `/api/v1/config` | Platform branding (from DB) |
 | Admin | `/api/v1/admin/*` | Masters, users |
 
 All list endpoints support: `?page=1&page_size=20&sort_by=field&sort_order=asc|desc&search=term`
 
-## Database Schema
-
-Key entities (per spreadsheet `07_Data_Model`):
-- `tenants`, `users`, `profiles`, `user_skills`
-- `posts`, `comments`, `reactions`, `post_media`
-- `communities`, `community_members`
-- `follows`, `events`, `event_participants`
-- `conversations`, `messages`
-- `notifications`, `reports`
-- `master_values` (admin-controlled taxonomy)
-
-## Production Deployment
-
-Set environment variables in `backend/.env` (see `backend/.env.example`):
+## Environment Variables
 
 ```env
+# backend/.env
 DATABASE_URL=postgresql://user:pass@localhost/thrivehub
-DATABASE_SCHEMA=thrivehub
 SECRET_KEY=your-production-secret
 CORS_ORIGINS=https://yourdomain.com
+
+# Optional — Redis caching
+REDIS_URL=redis://localhost:6379/0
+
+# Optional — S3-compatible media storage
+S3_ENDPOINT=http://localhost:9000
+S3_BUCKET=thrivehub-media
+S3_ACCESS_KEY=minioadmin
+S3_SECRET_KEY=minioadmin
+
+# Optional — FCM push notifications
+FCM_SERVER_KEY=your-fcm-server-key
+FCM_PROJECT_ID=your-firebase-project-id
 ```
 
-PostgreSQL tables are created in the `thrivehub` schema (not `public`), so you can migrate later with:
+## Push Notification Setup
 
-```bash
-pg_dump --schema=thrivehub -h HOST -U USER -d DBNAME > thrivehub_schema.sql
-```
+See `GET /api/v1/push/setup` for full Android (FCM) and iOS (APNs via FCM) setup instructions.
 
-## Render Deployment
+**Android:** Add `google-services.json`, register device token via API.
+**iOS:** Add `GoogleService-Info.plist`, enable Push Notifications in Xcode, register token via API.
 
-This repo includes a [Render Blueprint](https://render.com/docs/blueprint-spec) (`render.yaml`) for one-click deployment of the API, web frontend, and managed PostgreSQL database.
+## Database Schema
 
-### Services
-
-| Service | Type | URL (default) |
-|---------|------|----------------|
-| `thrivehub-api` | Python web (FastAPI) | `https://thrivehub-api.onrender.com` |
-| `thrivehub-web` | Static site (Vite/React) | `https://thrivehub-web.onrender.com` |
-| `thrivehub-db` | PostgreSQL 16 | Internal connection via `DATABASE_URL` |
-
-### Deploy steps
-
-1. Push this repo to GitHub ([mayankmehta1610/thrivehub](https://github.com/mayankmehta1610/thrivehub)).
-2. In [Render Dashboard](https://dashboard.render.com/) → **New** → **Blueprint**.
-3. Connect the GitHub repo; Render reads `render.yaml` and provisions all services.
-4. Set **secret** env vars marked `sync: false` in the dashboard (never commit these):
-   - `SECRET_KEY` — auto-generated by Blueprint; override if you prefer your own
-   - `REDIS_URL`, `S3_*`, `FCM_*` — optional, only if using those features
-   - `VITE_API_URL` — only if WebSockets need a direct API URL (default uses `/api` proxy)
-5. After first deploy, open `https://thrivehub-web.onrender.com` and log in with demo accounts (seeded on API startup).
-
-### Environment variables
-
-| Variable | Service | Required | Notes |
-|----------|---------|----------|-------|
-| `DATABASE_URL` | API | Yes | Auto-linked from `thrivehub-db` |
-| `DATABASE_SCHEMA` | API | No | Default `thrivehub` |
-| `SECRET_KEY` | API | Yes | JWT signing; auto-generated in Blueprint |
-| `CORS_ORIGINS` | API | Yes | Set to your web URL |
-| `VITE_API_URL` | Web | No | Defaults to `/api/v1` via proxy |
-| `REDIS_URL` | API | No | Falls back to in-memory cache |
-| `S3_*` | API | No | Falls back to local `uploads/` (ephemeral on Render) |
-
-### Database schema
-
-On startup the API runs:
-
-```sql
-CREATE SCHEMA IF NOT EXISTS thrivehub;
-SET search_path TO thrivehub, public;
-```
-
-All SQLAlchemy models use the `thrivehub` schema on PostgreSQL. SQLite local dev ignores the schema namespace.
-
-### Manual DB init (optional)
-
-```bash
-cd backend
-pip install -r requirements.txt
-export DATABASE_URL="postgresql://..."
-python -m scripts.init_db
-```
-
-### Render CLI (optional)
-
-Install the [Render CLI](https://render.com/docs/cli) and authenticate with an API key set in your environment (do not commit the key):
-
-```bash
-export RENDER_API_KEY="rnd_..."   # set locally only
-render services list
-render env list --service thrivehub-api
-```
-
-### Production notes
-
-- Free-tier web services spin down after inactivity; first request may be slow.
-- Use S3-compatible storage (`S3_*` env vars) for persistent media uploads on Render.
-- For custom domains, update `CORS_ORIGINS` on the API and redeploy the web static site.
-
+Key entities:
+- `tenants`, `users`, `profiles`, `user_skills`
+- `posts`, `comments`, `reactions`
+- `communities`, `community_members`, `events`, `event_participants`
+- `conversations`, `messages`
+- `notifications`, `reports`, `appeals`, `moderation_actions`
+- `user_blocks`, `user_mutes`, `audit_logs`
+- `subscription_tiers`, `user_subscriptions`, `sponsorships`
+- `ai_moderation_flags`, `device_tokens`
+- `master_values` (admin-controlled taxonomy)
 
 ## Spreadsheet Spec Coverage
 
-Based on `Community_Platform_Complete_Requirements_1000Plus.xlsx`:
-
 | Release | Status |
 |---------|--------|
-| R0 - Foundation | Done (architecture, auth skeleton, admin) |
-| R1 - Community Core | Done (profiles, posts, feed, follows, communities) |
-| R2 - Events & Discovery | Done (events, search, notifications, mobile) |
-| R3 - Trust & Messaging | Partial (messaging, reports; moderation queues pending) |
-| R4 - Commercial & AI | Not started (subscriptions, AI moderation) |
+| R0 - Foundation | Done |
+| R1 - Community Core | Done |
+| R2 - Events & Discovery | Done |
+| R3 - Trust & Messaging | Done (moderation, appeals, WS, push, block/mute) |
+| R4 - Commercial & AI | Done (subscriptions, sponsorships, AI moderation stub) |
 
 ### Remaining (future phases)
-- Advanced moderation workflows & appeals
-- WebSocket real-time messaging
-- Push notifications (FCM/APNs)
-- OpenSearch integration
-- Redis caching, S3 media uploads
-- Multi-tenant admin portal
-- AI moderation & recommendations (R4)
+- OpenSearch integration for advanced search
+- Multi-tenant admin portal (full isolation)
+- Production FCM/APNs with firebase_messaging in Flutter
+- Payment gateway integration for subscriptions
+- Full AI moderation with external ML service
 - 1000+ feature backlog items (enterprise features)
 
 ## License

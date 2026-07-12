@@ -48,6 +48,27 @@ def init_database() -> None:
         with engine.begin() as conn:
             conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
     Base.metadata.create_all(bind=engine)
+    _migrate_sqlite_columns()
+
+
+def _migrate_sqlite_columns() -> None:
+    """Add new columns to existing SQLite tables (dev convenience)."""
+    if not database_url.startswith("sqlite"):
+        return
+    migrations = {
+        "reports": [
+            ("priority", "VARCHAR(16) DEFAULT 'normal'"),
+            ("resolved_by", "VARCHAR(36)"),
+            ("resolution_notes", "TEXT"),
+            ("resolved_at", "DATETIME"),
+        ],
+    }
+    with engine.begin() as conn:
+        for table, columns in migrations.items():
+            existing = {row[1] for row in conn.execute(text(f"PRAGMA table_info({table})")).fetchall()}
+            for col_name, col_def in columns:
+                if col_name not in existing:
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_def}"))
 
 
 def get_db():

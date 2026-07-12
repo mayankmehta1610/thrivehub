@@ -222,6 +222,103 @@ class ApiClient {
   getUsers(params) {
     return this.get('/users', params)
   }
+
+  // Trust & Safety
+  createReport(data) {
+    return this.post('/reports', data)
+  }
+
+  blockUser(userId) {
+    return this.post(`/trust/users/${userId}/block`)
+  }
+
+  unblockUser(userId) {
+    return this.delete(`/trust/users/${userId}/block`)
+  }
+
+  muteUser(userId) {
+    return this.post(`/trust/users/${userId}/mute`)
+  }
+
+  unmuteUser(userId) {
+    return this.delete(`/trust/users/${userId}/mute`)
+  }
+
+  createAppeal(reportId, data) {
+    return this.post(`/trust/reports/${reportId}/appeals`, data)
+  }
+
+  // Admin Moderation
+  getModerationQueue(params) {
+    return this.get('/admin/moderation/queue', params)
+  }
+
+  getReports(params) {
+    return this.get('/admin/moderation/reports', params)
+  }
+
+  resolveReport(id, data) {
+    return this.patch(`/admin/moderation/reports/${id}`, data)
+  }
+
+  getAppeals(params) {
+    return this.get('/admin/moderation/appeals', params)
+  }
+
+  reviewAppeal(id, data) {
+    return this.patch(`/admin/moderation/appeals/${id}`, data)
+  }
+
+  getAiFlags(params) {
+    return this.get('/admin/moderation/ai-flags', params)
+  }
+
+  reviewAiFlag(id, data) {
+    return this.patch(`/admin/moderation/ai-flags/${id}`, data)
+  }
+
+  getAuditLogs(params) {
+    return this.get('/admin/moderation/audit-logs', params)
+  }
+
+  // Commercial
+  getSubscriptionTiers(params) {
+    return this.get('/subscriptions/tiers', params)
+  }
+
+  getMySubscription() {
+    return this.get('/subscriptions/me')
+  }
+
+  getSponsorships(params) {
+    return this.get('/sponsorships', params)
+  }
+
+  // Media
+  async uploadMedia(file) {
+    const form = new FormData()
+    form.append('file', file)
+    const headers = {}
+    if (this.token) headers.Authorization = `Bearer ${this.token}`
+    const res = await fetch(`${API_BASE}/media/upload`, { method: 'POST', headers, body: form })
+    if (!res.ok) throw new Error('Upload failed')
+    return res.json()
+  }
+
+  // Push
+  registerDevice(platform, token) {
+    return this.post('/push/register', { platform, token })
+  }
+
+  getPushSetup() {
+    return this.get('/push/setup')
+  }
+
+  // WebSocket URL for messaging
+  getWsUrl(conversationId) {
+    const wsBase = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1').replace(/^http/, 'ws')
+    return `${wsBase}/ws/messages/${conversationId}?token=${this.token}`
+  }
 }
 
 export const api = new ApiClient()
