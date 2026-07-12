@@ -97,7 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: 72, height: 72,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),
-                      gradient: const LinearGradient(colors: [Color(0xFF6366F1), Color(0xFFEC4899), Color(0xFF14B8A6)]),
+                      gradient: const LinearGradient(colors: [Color(0xFF3B82F6), Color(0xFF6366F1), Color(0xFF8B5CF6)]),
                     ),
                     child: const Center(child: Text('T', style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold))),
                   ),
@@ -111,9 +111,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       padding: const EdgeInsets.all(12),
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
-                        color: Colors.amber[50],
+                        color: const Color(0xFFEEF2FF),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.amber.shade100),
+                        border: Border.all(color: const Color(0xFFC7D2FE)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -121,10 +121,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           SizedBox(
                             width: 16,
                             height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.amber[800]),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF6366F1)),
                           ),
                           const SizedBox(width: 8),
-                          Text('Waking up server...', style: TextStyle(color: Colors.amber[900])),
+                          Text('Waking up server...', style: TextStyle(color: Color(0xFF4338CA))),
                         ],
                       ),
                     ),
@@ -162,7 +162,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: ElevatedButton(
                       onPressed: _loading ? null : _login,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6366F1),
+                        backgroundColor: const Color(0xFFF43F5E),
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),

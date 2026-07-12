@@ -22,8 +22,15 @@ class ThriveHubApp extends StatelessWidget {
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
             seedColor: const Color(0xFF6366F1),
-            secondary: const Color(0xFFEC4899),
+            primary: const Color(0xFF6366F1),
+            secondary: const Color(0xFF8B5CF6),
             tertiary: const Color(0xFF14B8A6),
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF43F5E),
+              foregroundColor: Colors.white,
+            ),
           ),
           textTheme: GoogleFonts.interTextTheme(),
           useMaterial3: true,

@@ -20,14 +20,14 @@ export default function Navbar({ config, dark = false }) {
     : []
 
   const navClass = dark
-    ? 'sticky top-0 z-50 bg-slate-950/80 backdrop-blur-md border-b border-white/10'
+    ? 'sticky top-0 z-50 bg-indigo-950/80 backdrop-blur-md border-b border-white/10'
     : 'sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm'
 
   return (
     <nav className={navClass}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         <Link to={user ? '/feed' : '/'} className="flex items-center gap-2.5">
-          <div className={`w-9 h-9 rounded-md flex items-center justify-center text-white font-bold text-lg ${dark ? 'bg-orange-500' : 'bg-slate-900'}`}>
+          <div className="w-9 h-9 rounded-md gradient-hero flex items-center justify-center text-white font-bold text-lg">
             T
           </div>
           <span className={`text-xl font-bold tracking-tight ${dark ? 'text-white' : 'text-slate-900'}`}>
@@ -43,7 +43,7 @@ export default function Navbar({ config, dark = false }) {
                 to={to}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                   location.pathname.startsWith(to)
-                    ? 'bg-orange-50 text-orange-600'
+                    ? 'bg-indigo-50 text-indigo-600'
                     : 'text-slate-600 hover:bg-slate-50'
                 }`}
               >
@@ -89,7 +89,7 @@ export default function Navbar({ config, dark = false }) {
               </Link>
               <Link
                 to="/register"
-                className="px-4 py-2 text-sm font-semibold text-white rounded-md bg-orange-500 hover:bg-orange-600 transition-colors"
+                className="px-4 py-2 text-sm font-semibold text-white rounded-md bg-rose-500 hover:bg-rose-600 transition-colors"
               >
                 Join Free
               </Link>

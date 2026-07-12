@@ -117,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text(config?['app_name'] ?? 'ThriveHub', style: const TextStyle(fontWeight: FontWeight.bold)),
         flexibleSpace: Container(
           decoration: const BoxDecoration(
-            gradient: LinearGradient(colors: [Color(0xFF6366F1), Color(0xFFEC4899)]),
+            gradient: LinearGradient(colors: [Color(0xFF3B82F6), Color(0xFF6366F1), Color(0xFF8B5CF6)]),
           ),
         ),
         foregroundColor: Colors.white,

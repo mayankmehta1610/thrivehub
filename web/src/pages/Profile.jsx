@@ -267,7 +267,7 @@ export default function Profile() {
                       <Ban className="w-4 h-4" />
                     </button>
                     <button onClick={handleMute} title="Mute"
-                      className={`p-2 rounded-lg border ${muted ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-white text-slate-500 border-slate-200'}`}>
+                      className={`p-2 rounded-lg border ${muted ? 'bg-violet-50 text-violet-600 border-violet-200' : 'bg-white text-slate-500 border-slate-200'}`}>
                       <VolumeX className="w-4 h-4" />
                     </button>
                     <button onClick={() => requireAuth(AUTH_MESSAGES.report) && setShowReport(true)} title="Report"

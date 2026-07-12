@@ -107,19 +107,19 @@ export default function Register() {
       <div className="relative w-full max-w-md bg-white rounded-lg shadow-xl p-8 border border-slate-200">
         {(waking || !apiReady) && status !== 'submitting' && (
           <div className="absolute inset-0 z-30 flex flex-col items-center justify-center rounded-lg bg-white/98 backdrop-blur-sm">
-            <Loader2 className="w-12 h-12 animate-spin text-orange-500" />
+            <Loader2 className="w-12 h-12 animate-spin text-indigo-500" />
             <p className="mt-4 text-slate-900 font-bold text-lg">{wakeMessage}</p>
             <p className="mt-2 text-slate-500 text-sm text-center px-6">
               Waking up server — free tier can take up to 90 seconds
             </p>
             {retryIn > 0 && (
-              <p className="mt-2 text-orange-600 text-sm">Retrying in {retryIn}s...</p>
+              <p className="mt-2 text-indigo-600 text-sm">Retrying in {retryIn}s...</p>
             )}
           </div>
         )}
 
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-md bg-slate-900 flex items-center justify-center text-white font-bold text-xl mx-auto mb-4">T</div>
+          <div className="w-12 h-12 rounded-md gradient-hero flex items-center justify-center text-white font-bold text-xl mx-auto mb-4">T</div>
           <h1 className="text-2xl font-bold text-slate-900">Join ThriveHub</h1>
           <p className="text-slate-500 mt-1">Showcase your skills, sports & adventures</p>
         </div>
@@ -151,14 +151,14 @@ export default function Register() {
                 onChange={(e) => update(field, e.target.value)}
                 required
                 disabled={busy || !apiReady}
-                className="w-full px-4 py-2.5 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 disabled:opacity-60"
+                className="w-full px-4 py-2.5 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 disabled:opacity-60"
               />
             </div>
           ))}
           <button
             type="submit"
             disabled={busy || !apiReady}
-            className="w-full py-3 rounded-md bg-orange-500 hover:bg-orange-600 text-white font-semibold disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-md bg-rose-500 hover:bg-rose-600 text-white font-semibold disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
           >
             {status === 'submitting' && <Loader2 className="w-4 h-4 animate-spin" />}
             {status === 'submitting' ? 'Creating account...' : apiReady ? 'Create Account' : 'Connecting to server...'}
@@ -166,7 +166,7 @@ export default function Register() {
         </form>
 
         <p className="text-center text-sm text-slate-500 mt-6">
-          Already a member? <Link to="/login" className="text-orange-500 font-medium hover:text-orange-600">Sign in</Link>
+          Already a member? <Link to="/login" className="text-indigo-600 font-medium hover:text-indigo-700">Sign in</Link>
         </p>
       </div>
     </div>

@@ -63,8 +63,8 @@ export default function App() {
           position="top-center"
           toastOptions={{
             duration: 4000,
-            style: { background: '#1e293b', color: '#fff', fontSize: '14px' },
-            error: { iconTheme: { primary: '#f97316', secondary: '#fff' } },
+            style: { background: '#6366F1', color: '#fff', fontSize: '14px' },
+            error: { iconTheme: { primary: '#F43F5E', secondary: '#fff' } },
           }}
         />
         <AppRoutes />

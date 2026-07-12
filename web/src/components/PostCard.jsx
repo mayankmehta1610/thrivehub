@@ -158,7 +158,7 @@ export default function PostCard({ post, onUpdate, isOwn = false }) {
               title={p.comments_enabled ? 'Disable comments' : 'Enable comments'}
               className="p-2 rounded-lg hover:bg-slate-50 text-slate-400"
             >
-              <MessageSquareOff className={`w-5 h-5 ${p.comments_enabled ? '' : 'text-amber-500'}`} />
+              <MessageSquareOff className={`w-5 h-5 ${p.comments_enabled ? '' : 'text-rose-500'}`} />
             </button>
           )}
           <button className="p-2 rounded-lg hover:bg-slate-50 text-slate-400">

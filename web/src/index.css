@@ -2,10 +2,12 @@
 @import "tailwindcss";
 
 :root {
-  --primary: #0f172a;
-  --secondary: #1e293b;
-  --accent: #f97316;
-  --accent-hover: #ea580c;
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --secondary: #8b5cf6;
+  --accent: #f43f5e;
+  --accent-hover: #e11d48;
+  --teal: #14b8a6;
   --surface: #f8fafc;
   --muted: #64748b;
 }
@@ -19,11 +21,11 @@ body {
 }
 
 .gradient-hero {
-  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%);
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, #0f172a, #334155);
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -47,7 +49,7 @@ body {
 .btn-primary:hover {
   background: var(--accent-hover);
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(249, 115, 22, 0.25);
+  box-shadow: 0 8px 24px rgba(244, 63, 94, 0.25);
 }
 
 .btn-outline {
@@ -71,7 +73,7 @@ body {
 }
 .card-hover:hover {
   transform: translateY(-4px);
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 16px 40px rgba(99, 102, 241, 0.12);
 }
 
 .scrollbar-hide {
@@ -115,7 +117,7 @@ body {
 .profile-cover {
   position: relative;
   height: 12rem;
-  background: var(--secondary);
+  background: var(--primary);
   overflow: hidden;
 }
 @media (min-width: 768px) {
@@ -129,7 +131,7 @@ body {
 .profile-cover-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.15) 0%, rgba(15, 23, 42, 0.55) 100%);
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.15) 0%, rgba(79, 70, 229, 0.55) 100%);
 }
 
 .profile-header-card {
@@ -148,7 +150,7 @@ body {
   border-radius: 0.75rem;
   object-fit: cover;
   border: 4px solid white;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
   background: #e2e8f0;
 }
 
@@ -179,11 +181,11 @@ body {
 }
 
 .skill-badge-dance { background: #fdf2f8; color: #9d174d; border-color: #fbcfe8; }
-.skill-badge-standup { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+.skill-badge-standup { background: #f5f3ff; color: #6d28d9; border-color: #ddd6fe; }
 .skill-badge-sports, .skill-badge-football, .skill-badge-running { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
 .skill-badge-adventure, .skill-badge-hiking, .skill-badge-climbing { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
 .skill-badge-music { background: #f5f3ff; color: #5b21b6; border-color: #ddd6fe; }
-.skill-badge-art { background: #fff7ed; color: #9a3412; border-color: #fed7aa; }
+.skill-badge-art { background: #fff1f2; color: #be123c; border-color: #fecdd3; }
 .skill-badge-fitness { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
 .skill-badge-photography { background: #f8fafc; color: #334155; border-color: #cbd5e1; }
 .skill-badge-cooking { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
@@ -203,7 +205,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%);
   min-height: 100%;
   min-width: 100%;
 }
@@ -214,7 +216,7 @@ body {
   border-radius: 0.5rem;
   overflow: hidden;
   cursor: pointer;
-  background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%);
 }
 .photo-gallery-item img {
   width: 100%;
