@@ -66,6 +66,18 @@ def on_startup():
     seed_database()
 
 
+@app.get("/")
+def root():
+    return {
+        "name": "ThriveHub API",
+        "version": "1.1.0",
+        "status": "ok",
+        "docs": "/docs",
+        "health": "/health",
+        "web_app": "https://thrivehub-web.onrender.com",
+    }
+
+
 @app.get("/health")
 def health():
     from app.utils.cache import _get_redis

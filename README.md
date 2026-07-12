@@ -4,6 +4,17 @@
 
 Repository: [https://github.com/mayankmehta1610/thrivehub](https://github.com/mayankmehta1610/thrivehub)
 
+## Live URLs
+
+| What | URL | Notes |
+|------|-----|-------|
+| **Website** (use this) | [https://thrivehub-web.onrender.com](https://thrivehub-web.onrender.com) | Community app — sign in, feed, messages |
+| **API** (backend only) | [https://thrivehub-api.onrender.com](https://thrivehub-api.onrender.com) | JSON API — not meant for browsing in a browser |
+| API docs | [https://thrivehub-api.onrender.com/docs](https://thrivehub-api.onrender.com/docs) | Swagger UI for developers |
+| Health check | [https://thrivehub-api.onrender.com/health](https://thrivehub-api.onrender.com/health) | Uptime / keep-alive ping |
+
+Visiting the API root (`/`) returns a small JSON welcome payload with links to docs, health, and the web app.
+
 ## Architecture
 
 ```
