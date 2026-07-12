@@ -173,6 +173,7 @@ def send_message(
 
     message = Message(conversation_id=conversation_id, sender_id=user.id, body=payload.body)
     db.add(message)
+    db.flush()  # populate message.created_at before using it
     conv = db.query(Conversation).filter(Conversation.id == conversation_id).first()
     if conv:
         conv.updated_at = message.created_at

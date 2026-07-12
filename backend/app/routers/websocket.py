@@ -103,6 +103,7 @@ async def websocket_messages(websocket: WebSocket, conversation_id: str, token: 
 
                 message = Message(conversation_id=conversation_id, sender_id=user.id, body=body)
                 db.add(message)
+                db.flush()  # populate message.created_at before using it
                 from app.models import Conversation
 
                 conv = db.query(Conversation).filter(Conversation.id == conversation_id).first()
