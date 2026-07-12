@@ -112,12 +112,28 @@ For physical device: `flutter run --dart-define=API_URL=http://YOUR_IP:8000/api/
 
 ## Demo Accounts
 
-| Email | Password | Role |
-|-------|----------|------|
-| admin@thrivehub.com | admin123 | Admin |
-| alex@thrivehub.com | demo1234 | Member (Pro tier) |
-| sam@thrivehub.com | demo1234 | Member |
-| jordan@thrivehub.com | demo1234 | Member |
+All demo accounts use password **`demo1234`** unless noted. Admin accounts use **`admin123`**.
+
+| Email | Password | Role | Persona |
+|-------|----------|------|---------|
+| admin@thrivehub.com | admin123 | Admin | Platform administrator |
+| ops@thrivehub.com | admin123 | Tenant Admin | Operations & moderation |
+| alex@thrivehub.com | demo1234 | Member (Pro) | Marathon runner & community builder |
+| sam@thrivehub.com | demo1234 | Member | Outdoor adventurer |
+| jordan@thrivehub.com | demo1234 | Member | Weekend football organiser |
+| dancer@thrivehub.com | demo1234 | Member | Salsa & dance instructor |
+| comedian@thrivehub.com | demo1234 | Member | Standup comedian |
+| mia@thrivehub.com | demo1234 | Member | Singer-songwriter |
+| chef@thrivehub.com | demo1234 | Member | Home chef & food blogger |
+| lens@thrivehub.com | demo1234 | Member | Street photographer |
+| riley@thrivehub.com | demo1234 | Member | CrossFit coach |
+| art@thrivehub.com | demo1234 | Member | Digital artist |
+
+**Admin portal:** Sign in as `admin@thrivehub.com` or `ops@thrivehub.com`, then open **Settings** (gear icon) → `/admin`.
+
+**Seed script:** Runs automatically on API startup (idempotent). Manual run: `cd backend && python -m app.seed` or `python scripts/seed.py`.
+
+**Landing page data** (skill categories, hero image, featured communities/events) is stored in `master_values` and served via `GET /api/v1/config` — image URLs are Unsplash (free license), not hard-coded in the web app.
 
 ## API Endpoints
 

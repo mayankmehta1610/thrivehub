@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session, joinedload
 from app.database import get_db
 from app.deps import require_admin
 from app.models import MasterValue, User
-from app.schemas import MasterValueOut, UserOut
+from app.routers.platform import _master_out
+from app.schemas import UserOut
 from app.utils.pagination import PaginationParams, apply_pagination, paginated
 
 router = APIRouter(tags=["Admin"])
@@ -49,4 +50,4 @@ def list_public_masters(
         search_fields=[MasterValue.code, MasterValue.label],
         sort_map={"sort_order": MasterValue.sort_order, "label": MasterValue.label},
     )
-    return paginated([MasterValueOut.model_validate(m) for m in items], total, params, total_pages)
+    return paginated([_master_out(m) for m in items], total, params, total_pages)

@@ -1,14 +1,42 @@
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy import func
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.deps import get_current_user, require_admin
-from app.models import MasterValue, Report, User
-from app.schemas import MasterValueCreate, MasterValueOut, PlatformConfigOut, ReportCreate, SearchResult
+from app.models import Community, CommunityMember, Event, EventParticipant, MasterValue, MembershipStatus, Post, Profile, Report, Sponsorship, User
+from app.schemas import (
+    FeaturedCommunityItem,
+    FeaturedEventItem,
+    FeaturedPostItem,
+    MasterValueCreate,
+    MasterValueOut,
+    PlatformConfigOut,
+    ReportCreate,
+    SearchResult,
+    SkillCategoryItem,
+    SponsorshipBrief,
+)
 from app.utils.pagination import PaginationParams, apply_pagination, paginated
-from app.models import Community, Event, Post, Profile
 
 router = APIRouter(tags=["Platform"])
+
+
+def _meta_image(m: MasterValue) -> str | None:
+    if not m.metadata_json:
+        return None
+    try:
+        return json.loads(m.metadata_json).get("image_url")
+    except (json.JSONDecodeError, TypeError):
+        return None
+
+
+def _master_out(m: MasterValue) -> MasterValueOut:
+    out = MasterValueOut.model_validate(m)
+    out.image_url = _meta_image(m)
+    return out
 
 
 @router.get("/search", response_model=dict)
@@ -59,14 +87,104 @@ def platform_config(db: Session = Depends(get_db)):
         .order_by(MasterValue.sort_order)
         .all()
     )
+    skill_cats = (
+        db.query(MasterValue)
+        .filter(MasterValue.master_type == "skill_category", MasterValue.status == "active")
+        .order_by(MasterValue.sort_order)
+        .all()
+    )
+    skill_categories = [
+        SkillCategoryItem(code=c.code, label=c.label, description=c.description, image_url=_meta_image(c))
+        for c in skill_cats
+    ]
+
+    communities_q = (
+        db.query(Community)
+        .filter(Community.status == "active")
+        .order_by(Community.created_at.desc())
+        .limit(6)
+    )
+    featured_communities = []
+    for c in communities_q:
+        member_count = db.query(func.count(CommunityMember.id)).filter(
+            CommunityMember.community_id == c.id,
+            CommunityMember.status == MembershipStatus.active,
+        ).scalar() or 0
+        featured_communities.append(FeaturedCommunityItem(
+            id=c.id, name=c.name, slug=c.slug, description=c.description,
+            cover_url=c.cover_url, member_count=member_count,
+        ))
+
+    events_q = (
+        db.query(Event)
+        .order_by(Event.start_at.asc())
+        .limit(6)
+    )
+    featured_events = []
+    for e in events_q:
+        participant_count = db.query(func.count(EventParticipant.id)).filter(
+            EventParticipant.event_id == e.id,
+        ).scalar() or 0
+        featured_events.append(FeaturedEventItem(
+            id=e.id, title=e.title, description=e.description, venue=e.venue,
+            image_url=e.image_url, start_at=e.start_at, participant_count=participant_count,
+        ))
+
+    posts_q = (
+        db.query(Post)
+        .options(joinedload(Post.author).joinedload(User.profile))
+        .filter(Post.status == "published", Post.image_url.isnot(None))
+        .order_by(Post.created_at.desc())
+        .limit(6)
+    )
+    featured_posts = []
+    for p in posts_q:
+        profile = p.author.profile if p.author else None
+        featured_posts.append(FeaturedPostItem(
+            id=p.id, body=p.body[:120], image_url=p.image_url,
+            author_name=profile.display_name if profile else None,
+            author_avatar=profile.avatar_url if profile else None,
+        ))
+
+    sponsors = (
+        db.query(Sponsorship)
+        .filter(Sponsorship.status == "active", Sponsorship.placement == "landing_banner")
+        .order_by(Sponsorship.sort_order)
+        .limit(4)
+        .all()
+    )
+    sponsorships = [
+        SponsorshipBrief(
+            id=s.id, title=s.title, sponsor_name=s.sponsor_name,
+            image_url=s.image_url, link_url=s.link_url, placement=s.placement,
+        )
+        for s in sponsors
+    ]
+
+    user_count = db.query(func.count(User.id)).scalar() or 0
+    community_count = db.query(func.count(Community.id)).filter(Community.status == "active").scalar() or 0
+    event_count = db.query(func.count(Event.id)).scalar() or 0
+
     return PlatformConfigOut(
         app_name=config.get("app_name", "ThriveHub"),
         tagline=config.get("tagline", "Skills, Sports & Adventure Community"),
         hero_image=config.get("hero_image", "https://images.unsplash.com/photo-1517649763962-0c62306601b7?w=1600"),
+        hero_subtitle=config.get("hero_subtitle"),
         primary_color=config.get("primary_color", "#6366F1"),
         secondary_color=config.get("secondary_color", "#EC4899"),
         accent_color=config.get("accent_color", "#14B8A6"),
         features=[{"code": f.code, "label": f.label, "description": f.description} for f in features],
+        skill_categories=skill_categories,
+        featured_communities=featured_communities,
+        featured_events=featured_events,
+        featured_posts=featured_posts,
+        sponsorships=sponsorships,
+        stats={
+            "members": user_count,
+            "communities": community_count,
+            "events": event_count,
+            "skill_categories": len(skill_categories),
+        },
     )
 
 
@@ -90,7 +208,7 @@ def list_masters(
         search_fields=[MasterValue.code, MasterValue.label, MasterValue.description],
         sort_map={"sort_order": MasterValue.sort_order, "label": MasterValue.label, "created_at": MasterValue.created_at},
     )
-    return paginated([MasterValueOut.model_validate(m) for m in items], total, params, total_pages)
+    return paginated([_master_out(m) for m in items], total, params, total_pages)
 
 
 @router.post("/admin/masters", response_model=MasterValueOut, status_code=201)
@@ -106,7 +224,7 @@ def create_master(payload: MasterValueCreate, user: User = Depends(require_admin
     db.add(master)
     db.commit()
     db.refresh(master)
-    return master
+    return _master_out(master)
 
 
 @router.post("/reports", status_code=201)

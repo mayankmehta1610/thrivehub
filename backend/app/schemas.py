@@ -70,8 +70,52 @@ class MasterValueOut(BaseModel):
     description: str | None = None
     status: str
     sort_order: int
+    image_url: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+class SkillCategoryItem(BaseModel):
+    code: str
+    label: str
+    description: str | None = None
+    image_url: str | None = None
+
+
+class FeaturedCommunityItem(BaseModel):
+    id: str
+    name: str
+    slug: str
+    description: str | None = None
+    cover_url: str | None = None
+    member_count: int = 0
+
+
+class FeaturedEventItem(BaseModel):
+    id: str
+    title: str
+    description: str | None = None
+    venue: str | None = None
+    image_url: str | None = None
+    start_at: datetime
+    participant_count: int = 0
+
+
+class FeaturedPostItem(BaseModel):
+    id: str
+    body: str
+    image_url: str | None = None
+    author_name: str | None = None
+    author_avatar: str | None = None
+
+
+class SponsorshipBrief(BaseModel):
+    id: str
+    title: str
+    sponsor_name: str
+    image_url: str | None = None
+    link_url: str | None = None
+    placement: str
 
 
 class MasterValueCreate(BaseModel):
@@ -260,10 +304,17 @@ class PlatformConfigOut(BaseModel):
     app_name: str
     tagline: str
     hero_image: str
+    hero_subtitle: str | None = None
     primary_color: str
     secondary_color: str
     accent_color: str
     features: list[dict]
+    skill_categories: list[SkillCategoryItem] = []
+    featured_communities: list[FeaturedCommunityItem] = []
+    featured_events: list[FeaturedEventItem] = []
+    featured_posts: list[FeaturedPostItem] = []
+    sponsorships: list[SponsorshipBrief] = []
+    stats: dict = {}
 
 
 class ReportOut(BaseModel):
