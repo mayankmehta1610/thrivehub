@@ -1,3 +1,2 @@
-# Render static site: API proxy (200 = same-origin proxy) + SPA fallback
-/api/*  https://thrivehub-api.onrender.com/api/:splat  200
-/*      /index.html  200
+/api/* https://thrivehub-api.onrender.com/api/:splat 200
+/* /index.html 200
