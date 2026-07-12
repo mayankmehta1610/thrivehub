@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import { wakeApi, NETWORK_ERROR, WAKE_TIMEOUT_MS } from '../api/client'
 import { consumeAuthMessage } from '../hooks/useRequireAuth'
+
+const RETRY_INTERVAL_SEC = 5
 
 function isNetworkFailure(err) {
   return err?.isNetwork || err?.name === 'NetworkError' || err?.message === NETWORK_ERROR
@@ -16,6 +18,9 @@ export default function Register() {
   const [apiReady, setApiReady] = useState(false)
   const [status, setStatus] = useState('waking')
   const [unreachable, setUnreachable] = useState(false)
+  const [wakeMessage, setWakeMessage] = useState('Connecting to server...')
+  const [retryIn, setRetryIn] = useState(0)
+  const retryTimerRef = useRef(null)
   const { register } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -26,46 +31,63 @@ export default function Register() {
     if (message) toast.error(message)
   }, [searchParams])
 
-  useEffect(() => {
-    let cancelled = false
-    wakeApi({ maxWaitMs: WAKE_TIMEOUT_MS })
-      .then((ok) => {
-        if (cancelled) return
-        setApiReady(ok)
-        if (!ok) {
-          setError(NETWORK_ERROR)
-          setUnreachable(true)
-          setStatus('error')
-        } else {
-          setStatus('idle')
-        }
-      })
-    return () => { cancelled = true }
-  }, [])
+  const clearRetryTimer = () => {
+    if (retryTimerRef.current) {
+      clearInterval(retryTimerRef.current)
+      retryTimerRef.current = null
+    }
+    setRetryIn(0)
+  }
 
-  const ensureApiReady = async () => {
-    if (apiReady) return true
+  const startWake = useCallback(async () => {
+    clearRetryTimer()
     setStatus('waking')
     setError('')
     setUnreachable(false)
-    const ok = await wakeApi({ maxWaitMs: WAKE_TIMEOUT_MS })
-    setApiReady(ok)
-    if (!ok) {
-      setError(NETWORK_ERROR)
-      setUnreachable(true)
-      setStatus('error')
-    } else {
+    setApiReady(false)
+    setWakeMessage('Connecting to server...')
+
+    const ok = await wakeApi({
+      maxWaitMs: WAKE_TIMEOUT_MS,
+      onStatus: (msg) => setWakeMessage(msg),
+    })
+
+    if (ok) {
+      setApiReady(true)
       setStatus('idle')
+      return true
     }
-    return ok
-  }
+
+    setError(NETWORK_ERROR)
+    setUnreachable(true)
+    setStatus('error')
+    setRetryIn(RETRY_INTERVAL_SEC)
+    retryTimerRef.current = setInterval(() => {
+      setRetryIn((prev) => {
+        if (prev <= 1) {
+          clearRetryTimer()
+          startWake()
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return false
+  }, [])
+
+  useEffect(() => {
+    startWake()
+    return () => clearRetryTimer()
+  }, [startWake])
 
   const runRegister = async (e) => {
     e?.preventDefault()
-    const ready = await ensureApiReady()
+    let ready = apiReady
+    if (!ready) ready = await startWake()
     if (!ready) return
 
     setStatus('submitting')
+    setError('')
     try {
       await register(form)
       navigate(redirectTo.startsWith('/') ? redirectTo : '/feed', { replace: true })
@@ -76,11 +98,6 @@ export default function Register() {
     }
   }
 
-  const retryWakeAndRegister = async () => {
-    setApiReady(false)
-    await runRegister()
-  }
-
   const waking = status === 'waking'
   const busy = waking || status === 'submitting'
   const update = (k, v) => setForm((f) => ({ ...f, [k]: v }))
@@ -88,13 +105,16 @@ export default function Register() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
       <div className="relative w-full max-w-md bg-white rounded-lg shadow-xl p-8 border border-slate-200">
-        {waking && (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-lg bg-white/95 backdrop-blur-sm">
-            <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
-            <p className="mt-4 text-slate-800 font-semibold">Waking up server...</p>
-            <p className="mt-1 text-slate-500 text-sm text-center px-6">
-              Free tier can take up to 90 seconds. Please wait.
+        {(waking || !apiReady) && status !== 'submitting' && (
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center rounded-lg bg-white/98 backdrop-blur-sm">
+            <Loader2 className="w-12 h-12 animate-spin text-orange-500" />
+            <p className="mt-4 text-slate-900 font-bold text-lg">{wakeMessage}</p>
+            <p className="mt-2 text-slate-500 text-sm text-center px-6">
+              Waking up server — free tier can take up to 90 seconds
             </p>
+            {retryIn > 0 && (
+              <p className="mt-2 text-orange-600 text-sm">Retrying in {retryIn}s...</p>
+            )}
           </div>
         )}
 
@@ -104,13 +124,13 @@ export default function Register() {
           <p className="text-slate-500 mt-1">Showcase your skills, sports & adventures</p>
         </div>
 
-        {error && (
+        {error && !waking && (
           <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md text-sm border border-red-100">
             {error}
             {unreachable && (
               <button
                 type="button"
-                onClick={retryWakeAndRegister}
+                onClick={() => startWake()}
                 className="mt-2 block w-full py-2 rounded-md bg-red-100 hover:bg-red-200 text-red-800 font-medium transition-colors"
               >
                 Try again
@@ -141,7 +161,7 @@ export default function Register() {
             className="w-full py-3 rounded-md bg-orange-500 hover:bg-orange-600 text-white font-semibold disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
           >
             {status === 'submitting' && <Loader2 className="w-4 h-4 animate-spin" />}
-            {status === 'submitting' ? 'Creating account...' : apiReady ? 'Create Account' : 'Waiting for server...'}
+            {status === 'submitting' ? 'Creating account...' : apiReady ? 'Create Account' : 'Connecting to server...'}
           </button>
         </form>
 

@@ -1,6 +1,8 @@
 import { DEFAULT_UPLOAD_LIMITS, validateFileSize } from '../utils/upload'
 
 export const WAKE_TIMEOUT_MS = 90000
+export const PRODUCTION_API_BASE = 'https://thrivehub-api.onrender.com/api/v1'
+export const PRODUCTION_HEALTH_URL = 'https://thrivehub-api.onrender.com/health'
 
 export const NETWORK_ERROR =
   'Unable to reach the server. It may be waking up (free tier) — wait a moment and try again.'
@@ -29,19 +31,31 @@ function isLocalDev() {
   return host === 'localhost' || host === '127.0.0.1'
 }
 
-/** Production uses direct API URL; same-origin /api proxy 301-redirects and breaks POST. */
+/** Always use direct production API URL — never relative /api/v1 on deployed web. */
 function getApiBase() {
-  if (!isLocalDev()) return 'https://thrivehub-api.onrender.com/api/v1'
-  return import.meta.env.VITE_API_URL || '/api/v1'
+  if (isLocalDev()) return import.meta.env.VITE_API_URL || '/api/v1'
+  return import.meta.env.VITE_API_URL || PRODUCTION_API_BASE
 }
 
 function getHealthUrl() {
-  if (!isLocalDev()) return 'https://thrivehub-api.onrender.com/health'
-  const apiUrl = import.meta.env.VITE_API_URL || '/api/v1'
-  if (apiUrl.startsWith('http')) {
-    return apiUrl.replace(/\/api\/v1\/?$/, '') + '/health'
+  const base = getApiBase()
+  if (base.startsWith('http')) return base.replace(/\/api\/v1\/?$/, '') + '/health'
+  return PRODUCTION_HEALTH_URL
+}
+
+async function fetchWithTimeout(url, ms = 10000) {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), ms)
+  try {
+    return await fetch(url, {
+      method: 'GET',
+      mode: 'cors',
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+  } finally {
+    clearTimeout(timeoutId)
   }
-  return 'http://localhost:8000/health'
 }
 
 async function isHealthyResponse(res) {
@@ -95,12 +109,9 @@ export async function wakeApi({ onStatus, maxWaitMs = WAKE_TIMEOUT_MS } = {}) {
 
   while (Date.now() - start < maxWaitMs) {
     attempt += 1
-    onStatus?.('Waking up server...')
+    onStatus?.('Connecting to server...')
     try {
-      const res = await fetch(healthUrl, {
-        method: 'GET',
-        signal: AbortSignal.timeout(10000),
-      })
+      const res = await fetchWithTimeout(healthUrl)
       if (await isHealthyResponse(res)) return true
     } catch {
       // keep retrying until maxWaitMs
@@ -204,12 +215,16 @@ class ApiClient {
     return this.request(path, { method: 'DELETE' })
   }
 
-  // Auth
-  login(email, password) {
+  // Auth — always wake API before auth requests
+  async login(email, password) {
+    const awake = await wakeApi()
+    if (!awake) throw new NetworkError()
     return this.post('/auth/login', { email, password })
   }
 
-  register(data) {
+  async register(data) {
+    const awake = await wakeApi()
+    if (!awake) throw new NetworkError()
     return this.post('/auth/register', data)
   }
 
