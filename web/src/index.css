@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+:root {
+  --primary: #6366f1;
+  --secondary: #ec4899;
+  --accent: #14b8a6;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #f8fafc;
+  color: #1e293b;
+}
+
+.gradient-hero {
+  background: linear-gradient(135deg, #6366f1 0%, #ec4899 50%, #14b8a6 100%);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #6366f1, #ec4899, #14b8a6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.card-hover {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(99, 102, 241, 0.15);
+}
