@@ -3,7 +3,7 @@ import { Image, Send } from 'lucide-react'
 import api from '../api/client'
 import Navbar from '../components/Navbar'
 import PostCard from '../components/PostCard'
-import { getUploadLimits } from '../utils/upload'
+import { getUploadLimits, getFileSizeError } from '../utils/upload'
 
 export default function Feed() {
   const [config, setConfig] = useState(null)
@@ -48,10 +48,16 @@ export default function Feed() {
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
+    const limits = getUploadLimits(config)
+    const sizeError = getFileSizeError(file, limits)
+    if (sizeError) {
+      setUploadError(sizeError)
+      e.target.value = ''
+      return
+    }
     setUploadError('')
     setUploading(true)
     try {
-      const limits = getUploadLimits(config)
       const result = await api.uploadMedia(file, limits)
       setImageUrl(result.url)
     } catch (err) {
@@ -61,6 +67,8 @@ export default function Feed() {
       e.target.value = ''
     }
   }
+
+  const postDisabled = uploading || (!newPost.trim() && !imageUrl)
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -107,7 +115,11 @@ export default function Feed() {
             >
               <Image className="w-5 h-5" />
             </button>
-            <button type="submit" className="flex items-center gap-2 px-5 py-2 rounded-xl gradient-hero text-white font-medium text-sm">
+            <button
+              type="submit"
+              disabled={postDisabled}
+              className="flex items-center gap-2 px-5 py-2 rounded-xl gradient-hero text-white font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <Send className="w-4 h-4" /> Post
             </button>
           </div>

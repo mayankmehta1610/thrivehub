@@ -20,3 +20,13 @@ export function validateFileSize(file, limits = DEFAULT_UPLOAD_LIMITS) {
     throw new Error(isVideo ? 'Video must be under 2MB' : 'Image must be under 500KB')
   }
 }
+
+/** Returns an error message if invalid, or null if OK. */
+export function getFileSizeError(file, limits = DEFAULT_UPLOAD_LIMITS) {
+  try {
+    validateFileSize(file, limits)
+    return null
+  } catch (err) {
+    return err.message
+  }
+}

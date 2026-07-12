@@ -30,6 +30,33 @@ class UploadValidationException implements Exception {
   String toString() => message;
 }
 
+/// Reusable validator for all mobile upload flows.
+/// Limits are loaded from GET /config → upload_limits on app init.
+class UploadValidator {
+  final UploadLimits limits;
+
+  const UploadValidator(this.limits);
+
+  factory UploadValidator.fromConfig(Map<String, dynamic>? config) {
+    return UploadValidator(UploadLimits.fromConfig(config));
+  }
+
+  /// Returns null if valid, or a user-facing error message.
+  String? validate({required String? contentType, required int sizeBytes}) {
+    return validateUploadSize(
+      contentType: contentType,
+      sizeBytes: sizeBytes,
+      limits: limits,
+    );
+  }
+
+  /// Throws [UploadValidationException] when the file exceeds limits.
+  void validateOrThrow({required String? contentType, required int sizeBytes}) {
+    final error = validate(contentType: contentType, sizeBytes: sizeBytes);
+    if (error != null) throw UploadValidationException(error);
+  }
+}
+
 String? validateUploadSize({
   required String? contentType,
   required int sizeBytes,

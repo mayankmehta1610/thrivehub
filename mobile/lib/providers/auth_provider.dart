@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../utils/upload_limits.dart';
 
 class AuthProvider extends ChangeNotifier {
   final ApiService api = ApiService();
   Map<String, dynamic>? user;
   Map<String, dynamic>? config;
   bool loading = true;
+
+  UploadLimits get uploadLimits => UploadLimits.fromConfig(config);
+  UploadValidator get uploadValidator => UploadValidator.fromConfig(config);
 
   Future<void> init() async {
     await api.loadTokens();

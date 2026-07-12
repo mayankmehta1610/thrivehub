@@ -8,7 +8,7 @@ import api from '../api/client'
 import Navbar from '../components/Navbar'
 import PostCard from '../components/PostCard'
 import { useAuth } from '../context/AuthContext'
-import { getUploadLimits } from '../utils/upload'
+import { getUploadLimits, getFileSizeError } from '../utils/upload'
 
 const SKILL_ICONS = {
   dance: '💃', standup: '🎤', sports: '⚽', football: '⚽', running: '🏃',
@@ -157,9 +157,14 @@ export default function Profile() {
 
   const handlePhotoUpload = async (file, field) => {
     if (!file) return
+    const limits = getUploadLimits(config)
+    const sizeError = getFileSizeError(file, limits)
+    if (sizeError) {
+      setUploadError(sizeError)
+      return
+    }
     setUploadError('')
     try {
-      const limits = getUploadLimits(config)
       const result = await api.uploadMedia(file, limits)
       setEditForm((prev) => ({ ...prev, [field]: result.url }))
     } catch (err) {
@@ -430,7 +435,11 @@ export default function Profile() {
               <button onClick={() => setEditing(false)} className="px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-50">
                 Cancel
               </button>
-              <button onClick={saveProfile} className="btn-primary px-4 py-2 text-sm">
+              <button
+                onClick={saveProfile}
+                disabled={!!uploadError}
+                className="btn-primary px-4 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 Save Changes
               </button>
             </div>

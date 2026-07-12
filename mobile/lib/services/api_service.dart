@@ -128,12 +128,10 @@ class ApiService {
     String folder = 'media',
   }) async {
     final effectiveLimits = limits ?? UploadLimits();
-    final error = validateUploadSize(
+    UploadValidator(effectiveLimits).validateOrThrow(
       contentType: contentType,
       sizeBytes: bytes.length,
-      limits: effectiveLimits,
     );
-    if (error != null) throw UploadValidationException(error);
 
     final uri = Uri.parse('$baseUrl/media/upload').replace(queryParameters: {'folder': folder});
     final request = http.MultipartRequest('POST', uri)

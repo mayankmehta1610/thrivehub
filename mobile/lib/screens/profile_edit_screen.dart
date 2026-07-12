@@ -21,7 +21,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   bool _saving = false;
   bool _uploading = false;
 
-  UploadLimits get _limits => UploadLimits.fromConfig(context.read<AuthProvider>().config);
+  UploadLimits get _limits => context.read<AuthProvider>().uploadLimits;
 
   @override
   void initState() {
