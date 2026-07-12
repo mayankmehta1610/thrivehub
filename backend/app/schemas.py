@@ -264,3 +264,145 @@ class PlatformConfigOut(BaseModel):
     secondary_color: str
     accent_color: str
     features: list[dict]
+
+
+class ReportOut(BaseModel):
+    id: str
+    reporter_id: str
+    target_type: str
+    target_id: str
+    reason_id: str | None
+    description: str | None
+    status: str
+    priority: str
+    resolution_notes: str | None
+    created_at: datetime
+    resolved_at: datetime | None
+
+    model_config = {"from_attributes": True}
+
+
+class ReportResolve(BaseModel):
+    status: str = Field(pattern="^(resolved|dismissed|reviewing)$")
+    resolution_notes: str | None = None
+    action: str | None = None
+
+
+class AppealCreate(BaseModel):
+    moderation_action_id: str | None = None
+    report_id: str | None = None
+    reason: str = Field(min_length=10)
+
+
+class AppealOut(BaseModel):
+    id: str
+    appellant_id: str
+    moderation_action_id: str | None
+    report_id: str | None
+    reason: str
+    status: str
+    review_notes: str | None
+    created_at: datetime
+    reviewed_at: datetime | None
+
+    model_config = {"from_attributes": True}
+
+
+class AppealReview(BaseModel):
+    status: str = Field(pattern="^(approved|rejected)$")
+    review_notes: str | None = None
+
+
+class ModerationActionCreate(BaseModel):
+    report_id: str | None = None
+    target_type: str
+    target_id: str
+    action: str
+    reason: str | None = None
+
+
+class ModerationActionOut(BaseModel):
+    id: str
+    moderator_id: str
+    report_id: str | None
+    target_type: str
+    target_id: str
+    action: str
+    reason: str | None
+    status: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class AuditLogOut(BaseModel):
+    id: str
+    actor_id: str
+    action: str
+    entity_type: str
+    entity_id: str | None
+    details_json: str | None
+    ip_address: str | None
+    created_at: datetime
+    actor: AuthorBrief | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class SubscriptionTierOut(BaseModel):
+    id: str
+    code: str
+    name: str
+    description: str | None
+    price_monthly: int
+    price_yearly: int
+    features_json: str | None
+    status: str
+    sort_order: int
+
+    model_config = {"from_attributes": True}
+
+
+class SponsorshipOut(BaseModel):
+    id: str
+    title: str
+    sponsor_name: str
+    image_url: str | None
+    link_url: str | None
+    placement: str
+    status: str
+    sort_order: int
+
+    model_config = {"from_attributes": True}
+
+
+class AiFlagCreate(BaseModel):
+    target_type: str
+    target_id: str
+    confidence: int = Field(ge=0, le=100)
+    categories: list[str] = []
+
+
+class AiFlagOut(BaseModel):
+    id: str
+    target_type: str
+    target_id: str
+    confidence: int
+    categories_json: str | None
+    flagged_by: str
+    status: str
+    review_notes: str | None
+    created_at: datetime
+    reviewed_at: datetime | None
+
+    model_config = {"from_attributes": True}
+
+
+class AiFlagReview(BaseModel):
+    status: str = Field(pattern="^(reviewed|dismissed)$")
+    review_notes: str | None = None
+
+
+class DeviceTokenCreate(BaseModel):
+    platform: str = Field(pattern="^(android|ios|web)$")
+    token: str = Field(min_length=10)

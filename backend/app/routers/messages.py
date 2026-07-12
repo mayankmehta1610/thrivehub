@@ -3,10 +3,12 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.deps import get_current_user
-from app.models import Conversation, ConversationParticipant, ConversationType, Message, User
+from app.models import Conversation, ConversationParticipant, ConversationType, Message, Notification, NotificationType, User
 from app.routers.posts import _author_brief
 from app.schemas import ConversationCreate, ConversationOut, MessageCreate, MessageOut
 from app.utils.pagination import PaginationParams, apply_pagination, paginated
+from app.utils.push import send_push_to_user
+from app.utils.trust import get_blocked_ids, is_blocked
 
 router = APIRouter(prefix="/messages", tags=["Messages"])
 
@@ -19,6 +21,7 @@ def list_conversations(
     db: Session = Depends(get_db),
 ):
     params = PaginationParams(page=page, page_size=page_size)
+    blocked = get_blocked_ids(db, user.id)
     query = (
         db.query(Conversation)
         .join(ConversationParticipant)
@@ -30,6 +33,9 @@ def list_conversations(
     )
     out = []
     for conv in items:
+        other_ids = [p.user_id for p in conv.participants if p.user_id != user.id]
+        if any(oid in blocked for oid in other_ids):
+            continue
         last_msg = db.query(Message).filter(Message.conversation_id == conv.id).order_by(Message.created_at.desc()).first()
         participants = [_author_brief(p.user) for p in conv.participants if p.user_id != user.id]
         out.append(
@@ -125,11 +131,34 @@ def send_message(
     )
     if not member:
         raise HTTPException(status_code=403, detail="Not a participant")
+
+    others = (
+        db.query(ConversationParticipant)
+        .filter(ConversationParticipant.conversation_id == conversation_id, ConversationParticipant.user_id != user.id)
+        .all()
+    )
+    for p in others:
+        if is_blocked(db, user.id, p.user_id):
+            raise HTTPException(status_code=403, detail="Cannot message blocked user")
+
     message = Message(conversation_id=conversation_id, sender_id=user.id, body=payload.body)
     db.add(message)
     conv = db.query(Conversation).filter(Conversation.id == conversation_id).first()
     if conv:
         conv.updated_at = message.created_at
+
+    sender_name = user.profile.display_name if user.profile else "Someone"
+    for p in others:
+        notif = Notification(
+            tenant_id=user.tenant_id,
+            user_id=p.user_id,
+            type=NotificationType.message,
+            title="New message",
+            body=f"{sender_name}: {payload.body[:80]}",
+        )
+        db.add(notif)
+        send_push_to_user(db, p.user_id, "New message", f"{sender_name}: {payload.body[:80]}")
+
     db.commit()
     db.refresh(message)
     return MessageOut(

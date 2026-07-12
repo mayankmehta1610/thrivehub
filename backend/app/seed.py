@@ -3,8 +3,11 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
-from app.database import Base, SessionLocal, engine
+from app.database import SessionLocal
 from app.models import (
+    AiModerationFlag,
+    Appeal,
+    AuditLog,
     Comment,
     Community,
     CommunityMember,
@@ -20,6 +23,7 @@ from app.models import (
     MembershipRole,
     MembershipStatus,
     Message,
+    ModerationAction,
     Notification,
     NotificationType,
     Post,
@@ -27,19 +31,23 @@ from app.models import (
     PostType,
     Profile,
     Reaction,
+    Report,
+    Sponsorship,
+    SubscriptionTier,
     Tenant,
     User,
     UserSkill,
     UserStatus,
+    UserSubscription,
 )
 from app.utils.security import hash_password
 
 
 def seed_database():
-    Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
         if db.query(Tenant).first():
+            seed_supplemental(db)
             return
         tenant = Tenant(code="thrivehub", name="ThriveHub", status="active")
         db.add(tenant)
@@ -237,10 +245,92 @@ def seed_database():
         for n in notifications:
             db.add(n)
 
+        seed_supplemental(db, tenant=tenant, users=users, master_map=master_map)
         db.commit()
         print("Database seeded successfully.")
     finally:
         db.close()
+
+
+def seed_supplemental(db: Session, tenant=None, users=None, master_map=None):
+    """Seed R3/R4 data — runs on fresh DB or supplements existing."""
+    if tenant is None:
+        tenant = db.query(Tenant).first()
+    if not tenant:
+        return
+    if users is None:
+        users = db.query(User).filter(User.tenant_id == tenant.id).all()
+    if master_map is None:
+        masters = db.query(MasterValue).filter(MasterValue.tenant_id == tenant.id).all()
+        master_map = {f"{m.master_type}:{m.code}": m.id for m in masters}
+
+    if not db.query(SubscriptionTier).filter(SubscriptionTier.tenant_id == tenant.id).first():
+        tiers = [
+            SubscriptionTier(
+                tenant_id=tenant.id, code="free", name="Free", description="Basic community access",
+                price_monthly=0, price_yearly=0,
+                features_json=json.dumps(["posts", "communities", "events"]), sort_order=0,
+            ),
+            SubscriptionTier(
+                tenant_id=tenant.id, code="pro", name="Pro", description="Enhanced features for active members",
+                price_monthly=999, price_yearly=9990,
+                features_json=json.dumps(["posts", "communities", "events", "analytics", "priority_support"]),
+                sort_order=1,
+            ),
+            SubscriptionTier(
+                tenant_id=tenant.id, code="elite", name="Elite", description="Premium tier for power users",
+                price_monthly=1999, price_yearly=19990,
+                features_json=json.dumps(["all_pro", "verified_badge", "sponsored_posts", "ai_insights"]),
+                sort_order=2,
+            ),
+        ]
+        for t in tiers:
+            db.add(t)
+        db.flush()
+        if len(users) > 1:
+            pro_tier = db.query(SubscriptionTier).filter(SubscriptionTier.code == "pro", SubscriptionTier.tenant_id == tenant.id).first()
+            if pro_tier:
+                db.add(UserSubscription(user_id=users[1].id, tier_id=pro_tier.id, status="active"))
+
+    if not db.query(Sponsorship).filter(Sponsorship.tenant_id == tenant.id).first():
+        db.add(Sponsorship(
+            tenant_id=tenant.id, title="Trail Gear Co.", sponsor_name="Trail Gear Co.",
+            image_url="https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800",
+            link_url="https://example.com/trailgear", placement="feed_banner", sort_order=0,
+        ))
+        db.add(Sponsorship(
+            tenant_id=tenant.id, title="Peak Performance", sponsor_name="Peak Performance",
+            image_url="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800",
+            link_url="https://example.com/peak", placement="sidebar", sort_order=1,
+        ))
+
+    if not db.query(Report).filter(Report.tenant_id == tenant.id).first() and len(users) > 2:
+        first_post = db.query(Post).filter(Post.tenant_id == tenant.id).first()
+        if first_post:
+            spam_reason = master_map.get("report_reason:spam")
+            db.add(Report(
+                tenant_id=tenant.id, reporter_id=users[2].id, target_type="post",
+                target_id=first_post.id,
+                reason_id=spam_reason, description="This looks like spam content", status="open", priority="normal",
+            ))
+
+    if not db.query(AiModerationFlag).filter(AiModerationFlag.tenant_id == tenant.id).first():
+        first_post = db.query(Post).filter(Post.tenant_id == tenant.id).first()
+        if first_post:
+            db.add(AiModerationFlag(
+                tenant_id=tenant.id, target_type="post", target_id=first_post.id,
+                confidence=45, categories_json=json.dumps(["low_risk"]), flagged_by="system", status="pending",
+            ))
+
+    if not db.query(AuditLog).filter(AuditLog.tenant_id == tenant.id).first() and users:
+        admin = next((u for u in users if u.role == "admin"), users[0])
+        db.add(AuditLog(
+            tenant_id=tenant.id, actor_id=admin.id, action="system_startup",
+            entity_type="system", details_json=json.dumps({"event": "seed_complete"}),
+        ))
+
+    db.commit()
+    print("Supplemental R3/R4 data seeded.")
 
 
 if __name__ == "__main__":

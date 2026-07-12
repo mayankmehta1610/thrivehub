@@ -1,0 +1,76 @@
+# ThriveHub — Render Blueprint
+# https://render.com/docs/blueprint-spec
+#
+# Deploy: Dashboard → New → Blueprint → connect this repo.
+# Secrets (SECRET_KEY, optional S3/FCM/Redis) use sync: false — set in Render dashboard.
+# NEVER commit API keys or database passwords to git.
+
+databases:
+  - name: thrivehub-db
+    plan: free
+    databaseName: thrivehub
+    user: thrivehub
+    postgresMajorVersion: "16"
+
+services:
+  # FastAPI backend
+  - type: web
+    name: thrivehub-api
+    runtime: python
+    plan: free
+    region: oregon
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: thrivehub-db
+          property: connectionString
+      - key: DATABASE_SCHEMA
+        value: thrivehub
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://thrivehub-web.onrender.com
+      - key: PYTHON_VERSION
+        value: "3.12.0"
+      # Optional — set in Render dashboard (sync: false)
+      - key: REDIS_URL
+        sync: false
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_BUCKET
+        value: thrivehub-media
+      - key: S3_ACCESS_KEY
+        sync: false
+      - key: S3_SECRET_KEY
+        sync: false
+      - key: S3_REGION
+        value: us-east-1
+      - key: FCM_SERVER_KEY
+        sync: false
+      - key: FCM_PROJECT_ID
+        sync: false
+
+  # React (Vite) frontend — static site with API proxy
+  - type: web
+    name: thrivehub-web
+    runtime: static
+    plan: free
+    region: oregon
+    rootDir: web
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      # Only needed if not using /api proxy (e.g. WebSocket). Leave unset to use relative /api/v1.
+      - key: VITE_API_URL
+        sync: false
+    routes:
+      - type: proxy
+        source: /api/*
+        destination: https://thrivehub-api.onrender.com/api/*
+      - type: rewrite
+        source: /*
+        destination: /index.html

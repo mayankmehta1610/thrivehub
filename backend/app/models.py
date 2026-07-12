@@ -400,7 +400,177 @@ class Report(Base):
     reason_id: Mapped[str | None] = mapped_column(ForeignKey("master_values.id"), nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(32), default="open")
+    priority: Mapped[str] = mapped_column(String(16), default="normal")
+    resolved_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    resolution_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+    reporter: Mapped["User"] = relationship(foreign_keys=[reporter_id])
+    reason: Mapped["MasterValue | None"] = relationship()
+    resolver: Mapped["User | None"] = relationship(foreign_keys=[resolved_by])
+
+
+class UserBlock(Base):
+    __tablename__ = "user_blocks"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    blocker_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    blocked_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
-    reporter: Mapped["User"] = relationship()
-    reason: Mapped["MasterValue | None"] = relationship()
+    blocker: Mapped["User"] = relationship(foreign_keys=[blocker_id])
+    blocked: Mapped["User"] = relationship(foreign_keys=[blocked_id])
+
+    __table_args__ = (UniqueConstraint("blocker_id", "blocked_id", name="uq_user_block"),)
+
+
+class UserMute(Base):
+    __tablename__ = "user_mutes"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    muter_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    muted_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    muter: Mapped["User"] = relationship(foreign_keys=[muter_id])
+    muted: Mapped["User"] = relationship(foreign_keys=[muted_id])
+
+    __table_args__ = (UniqueConstraint("muter_id", "muted_id", name="uq_user_mute"),)
+
+
+class ModerationAction(Base):
+    __tablename__ = "moderation_actions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), index=True)
+    moderator_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    report_id: Mapped[str | None] = mapped_column(ForeignKey("reports.id"), nullable=True, index=True)
+    target_type: Mapped[str] = mapped_column(String(32))
+    target_id: Mapped[str] = mapped_column(String(36))
+    action: Mapped[str] = mapped_column(String(32))
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(32), default="active")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+    moderator: Mapped["User"] = relationship()
+    report: Mapped["Report | None"] = relationship()
+
+
+class Appeal(Base):
+    __tablename__ = "appeals"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), index=True)
+    appellant_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    moderation_action_id: Mapped[str | None] = mapped_column(ForeignKey("moderation_actions.id"), nullable=True)
+    report_id: Mapped[str | None] = mapped_column(ForeignKey("reports.id"), nullable=True)
+    reason: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(32), default="pending")
+    reviewer_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    review_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+    appellant: Mapped["User"] = relationship(foreign_keys=[appellant_id])
+    reviewer: Mapped["User | None"] = relationship(foreign_keys=[reviewer_id])
+    moderation_action: Mapped["ModerationAction | None"] = relationship()
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), index=True)
+    actor_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    action: Mapped[str] = mapped_column(String(64))
+    entity_type: Mapped[str] = mapped_column(String(32))
+    entity_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    details_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ip_address: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+    actor: Mapped["User"] = relationship()
+
+
+class SubscriptionTier(Base):
+    __tablename__ = "subscription_tiers"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), index=True)
+    code: Mapped[str] = mapped_column(String(64))
+    name: Mapped[str] = mapped_column(String(128))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    price_monthly: Mapped[int] = mapped_column(Integer, default=0)
+    price_yearly: Mapped[int] = mapped_column(Integer, default=0)
+    features_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(32), default="active")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    __table_args__ = (UniqueConstraint("tenant_id", "code", name="uq_tier_code"),)
+
+
+class UserSubscription(Base):
+    __tablename__ = "user_subscriptions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    tier_id: Mapped[str] = mapped_column(ForeignKey("subscription_tiers.id"), index=True)
+    status: Mapped[str] = mapped_column(String(32), default="active")
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    user: Mapped["User"] = relationship()
+    tier: Mapped["SubscriptionTier"] = relationship()
+
+
+class Sponsorship(Base):
+    __tablename__ = "sponsorships"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), index=True)
+    title: Mapped[str] = mapped_column(String(255))
+    sponsor_name: Mapped[str] = mapped_column(String(128))
+    image_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    link_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    placement: Mapped[str] = mapped_column(String(64), default="feed_banner")
+    status: Mapped[str] = mapped_column(String(32), default="active")
+    start_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    end_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class AiModerationFlag(Base):
+    __tablename__ = "ai_moderation_flags"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), index=True)
+    target_type: Mapped[str] = mapped_column(String(32))
+    target_id: Mapped[str] = mapped_column(String(36))
+    confidence: Mapped[int] = mapped_column(Integer, default=0)
+    categories_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    flagged_by: Mapped[str] = mapped_column(String(32), default="system")
+    status: Mapped[str] = mapped_column(String(32), default="pending")
+    reviewer_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    review_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+    reviewer: Mapped["User | None"] = relationship()
+
+
+class DeviceToken(Base):
+    __tablename__ = "device_tokens"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    platform: Mapped[str] = mapped_column(String(16))
+    token: Mapped[str] = mapped_column(String(512))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    user: Mapped["User"] = relationship()
+
+    __table_args__ = (UniqueConstraint("user_id", "platform", "token", name="uq_device_token"),)

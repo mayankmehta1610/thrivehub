@@ -1,15 +1,53 @@
-from sqlalchemy import create_engine
+from sqlalchemy import MetaData, create_engine, event, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from app.config import settings
 
-connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
-engine = create_engine(settings.database_url, connect_args=connect_args)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+def _normalize_database_url(url: str) -> str:
+    """Render provides postgres:// URLs; SQLAlchemy 2.x expects postgresql://."""
+    if url.startswith("postgres://"):
+        return url.replace("postgres://", "postgresql://", 1)
+    return url
+
+
+def _use_schema() -> bool:
+    return not settings.database_url.startswith("sqlite")
+
+
+def _schema_name() -> str | None:
+    return settings.database_schema if _use_schema() else None
+
+
+metadata = MetaData(schema=_schema_name())
 
 
 class Base(DeclarativeBase):
-    pass
+    metadata = metadata
+
+
+database_url = _normalize_database_url(settings.database_url)
+connect_args = {"check_same_thread": False} if database_url.startswith("sqlite") else {}
+engine = create_engine(database_url, connect_args=connect_args, pool_pre_ping=True)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+@event.listens_for(engine, "connect")
+def _set_search_path(dbapi_connection, _connection_record):
+    schema = _schema_name()
+    if schema and engine.dialect.name == "postgresql":
+        cursor = dbapi_connection.cursor()
+        cursor.execute(f'SET search_path TO "{schema}", public')
+        cursor.close()
+
+
+def init_database() -> None:
+    """Create PostgreSQL schema (if needed) and all application tables."""
+    schema = _schema_name()
+    if schema and engine.dialect.name == "postgresql":
+        with engine.begin() as conn:
+            conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
+    Base.metadata.create_all(bind=engine)
 
 
 def get_db():
