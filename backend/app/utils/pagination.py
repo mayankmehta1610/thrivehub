@@ -54,7 +54,7 @@ def apply_pagination(
     return items, total, total_pages
 
 
-def paginated(items: list[T], total: int, params: PaginationParams, total_pages: int) -> PaginatedResponse[T]:
+def paginated(items: list[T], total: int, params: PaginationParams, total_pages: int) -> dict:
     return PaginatedResponse(
         items=items,
         total=total,
@@ -64,4 +64,4 @@ def paginated(items: list[T], total: int, params: PaginationParams, total_pages:
         sort_by=params.sort_by,
         sort_order=params.sort_order,
         search=params.search,
-    )
+    ).model_dump(mode="json")
