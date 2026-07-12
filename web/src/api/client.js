@@ -210,6 +210,14 @@ class ApiClient {
     return this.post('/posts', data)
   }
 
+  getPost(postId) {
+    return this.get(`/posts/${postId}`)
+  }
+
+  updatePost(postId, data) {
+    return this.patch(`/posts/${postId}`, data)
+  }
+
   getPostComments(postId, params) {
     return this.get(`/posts/${postId}/comments`, params)
   }
@@ -219,11 +227,27 @@ class ApiClient {
   }
 
   reactPost(postId, reaction_type = 'like') {
-    return this.put(`/posts/${postId}/reactions`, { reaction_type })
+    return this.post(`/posts/${postId}/reactions`, { reaction_type })
   }
 
   unreactPost(postId) {
     return this.delete(`/posts/${postId}/reactions`)
+  }
+
+  getPostReactions(postId, params) {
+    return this.get(`/posts/${postId}/reactions`, params)
+  }
+
+  sharePost(postId) {
+    return this.post(`/posts/${postId}/share`)
+  }
+
+  getPostShares(postId, params) {
+    return this.get(`/posts/${postId}/shares`, params)
+  }
+
+  getPostCommentUsers(postId, params) {
+    return this.get(`/posts/${postId}/comments/users`, params)
   }
 
   // Profiles

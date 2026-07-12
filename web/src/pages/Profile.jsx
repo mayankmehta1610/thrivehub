@@ -358,7 +358,7 @@ export default function Profile() {
             ) : posts.length > 0 ? (
               <div className="space-y-4 -mx-1">
                 {posts.map((post) => (
-                  <PostCard key={post.id} post={post} onUpdate={refreshPosts} />
+                  <PostCard key={post.id} post={post} onUpdate={refreshPosts} isOwn={isOwn} />
                 ))}
               </div>
             ) : (

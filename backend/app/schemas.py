@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Generic, TypeVar
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 T = TypeVar("T")
 
@@ -169,6 +169,7 @@ class PostUpdate(BaseModel):
     body: str | None = None
     audience: str | None = None
     image_url: str | None = None
+    comments_enabled: bool | None = None
 
 
 class AuthorBrief(BaseModel):
@@ -189,18 +190,33 @@ class PostOut(BaseModel):
     audience: str
     status: str
     image_url: str | None
+    comments_enabled: bool = True
     created_at: datetime
     author: AuthorBrief | None = None
+    like_count: int = 0
+    dislike_count: int = 0
     reaction_count: int = 0
     comment_count: int = 0
+    share_count: int = 0
     user_reacted: bool = False
+    user_reaction_type: str | None = None
 
     model_config = {"from_attributes": True}
 
 
 class CommentCreate(BaseModel):
-    body: str = Field(min_length=1)
+    body: str = Field(min_length=1, max_length=2000)
     parent_id: str | None = None
+
+    @field_validator("body")
+    @classmethod
+    def strip_body(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("Comment cannot be empty")
+        if len(v) > 2000:
+            raise ValueError("Comment must be at most 2000 characters")
+        return v
 
 
 class CommentOut(BaseModel):
@@ -218,6 +234,32 @@ class CommentOut(BaseModel):
 
 class ReactionCreate(BaseModel):
     reaction_type: str = "like"
+
+
+class ReactionUserOut(BaseModel):
+    id: str
+    reaction_type: str
+    created_at: datetime
+    user: AuthorBrief | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class ShareUserOut(BaseModel):
+    id: str
+    created_at: datetime
+    user: AuthorBrief | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class CommentUserOut(BaseModel):
+    id: str
+    body: str
+    created_at: datetime
+    user: AuthorBrief | None = None
+
+    model_config = {"from_attributes": True}
 
 
 class CommunityCreate(BaseModel):

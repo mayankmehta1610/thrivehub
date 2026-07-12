@@ -43,12 +43,15 @@ def _set_search_path(dbapi_connection, _connection_record):
 
 def init_database() -> None:
     """Create PostgreSQL schema (if needed) and all application tables."""
+    import app.models  # noqa: F401 — register all ORM models with metadata
+
     schema = _schema_name()
     if schema and engine.dialect.name == "postgresql":
         with engine.begin() as conn:
             conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
     Base.metadata.create_all(bind=engine)
     _migrate_sqlite_columns()
+    _migrate_postgres_columns()
 
 
 def _migrate_sqlite_columns() -> None:
@@ -62,6 +65,9 @@ def _migrate_sqlite_columns() -> None:
             ("resolution_notes", "TEXT"),
             ("resolved_at", "DATETIME"),
         ],
+        "posts": [
+            ("comments_enabled", "BOOLEAN DEFAULT 1"),
+        ],
     }
     with engine.begin() as conn:
         for table, columns in migrations.items():
@@ -69,6 +75,18 @@ def _migrate_sqlite_columns() -> None:
             for col_name, col_def in columns:
                 if col_name not in existing:
                     conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_def}"))
+
+
+def _migrate_postgres_columns() -> None:
+    """Add new columns to existing PostgreSQL tables."""
+    if engine.dialect.name != "postgresql":
+        return
+    migrations = [
+        ('ALTER TABLE posts ADD COLUMN IF NOT EXISTS comments_enabled BOOLEAN DEFAULT TRUE'),
+    ]
+    with engine.begin() as conn:
+        for stmt in migrations:
+            conn.execute(text(stmt))
 
 
 def get_db():
