@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import api from '../api/client'
 import SafeImage from './SafeImage'
 import { useAuth } from '../context/AuthContext'
+import { useRequireAuth } from '../hooks/useRequireAuth'
+import { AUTH_MESSAGES } from '../utils/authMessages'
 
 const MIN_LENGTH = 1
 const MAX_LENGTH = 2000
@@ -24,6 +26,7 @@ function formatTimestamp(date) {
 
 export default function CommentSection({ postId, commentsEnabled = true, onCommentAdded }) {
   const { user } = useAuth()
+  const requireAuth = useRequireAuth()
   const [comments, setComments] = useState([])
   const [newComment, setNewComment] = useState('')
   const [loading, setLoading] = useState(false)
@@ -55,6 +58,7 @@ export default function CommentSection({ postId, commentsEnabled = true, onComme
 
   const submitComment = async (e) => {
     e.preventDefault()
+    if (!requireAuth(AUTH_MESSAGES.comment)) return
     const validationError = validateComment(newComment)
     if (validationError) {
       setError(validationError)
@@ -84,7 +88,7 @@ export default function CommentSection({ postId, commentsEnabled = true, onComme
 
   return (
     <div className="px-4 pb-4 border-t border-slate-50 bg-slate-50/50">
-      {user && (
+      {user ? (
         <form onSubmit={submitComment} className="py-3 space-y-2">
           <div className="flex gap-2">
             <textarea
@@ -111,6 +115,16 @@ export default function CommentSection({ postId, commentsEnabled = true, onComme
             <span>{newComment.trim().length}/{MAX_LENGTH}</span>
           </div>
         </form>
+      ) : (
+        <div className="py-3 text-center">
+          <button
+            type="button"
+            onClick={() => requireAuth(AUTH_MESSAGES.comment)}
+            className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
+          >
+            Sign in to comment
+          </button>
+        </div>
       )}
 
       {loadingComments ? (

@@ -1,5 +1,8 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { storeAuthMessage } from './hooks/useRequireAuth'
+import { AUTH_MESSAGES } from './utils/authMessages'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -15,8 +18,12 @@ import Admin from './pages/Admin'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
+  const location = useLocation()
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>
-  return user ? children : <Navigate to="/login" />
+  if (user) return children
+  const redirect = location.pathname + location.search
+  storeAuthMessage(AUTH_MESSAGES.default)
+  return <Navigate to={`/login?redirect=${encodeURIComponent(redirect)}&message=${encodeURIComponent(AUTH_MESSAGES.default)}`} replace />
 }
 
 function AppRoutes() {
@@ -42,6 +49,14 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <Toaster
+          position="top-center"
+          toastOptions={{
+            duration: 4000,
+            style: { background: '#1e293b', color: '#fff', fontSize: '14px' },
+            error: { iconTheme: { primary: '#f97316', secondary: '#fff' } },
+          }}
+        />
         <AppRoutes />
       </AuthProvider>
     </BrowserRouter>

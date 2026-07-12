@@ -3,9 +3,12 @@ import { Send } from 'lucide-react'
 import api from '../api/client'
 import Navbar from '../components/Navbar'
 import { useAuth } from '../context/AuthContext'
+import { useRequireAuth } from '../hooks/useRequireAuth'
+import { AUTH_MESSAGES } from '../utils/authMessages'
 
 export default function Messages() {
   const { user } = useAuth()
+  const requireAuth = useRequireAuth()
   const [config, setConfig] = useState(null)
   const [conversations, setConversations] = useState([])
   const [selected, setSelected] = useState(null)
@@ -68,6 +71,7 @@ export default function Messages() {
 
   const send = async (e) => {
     e.preventDefault()
+    if (!requireAuth(AUTH_MESSAGES.sendMessage)) return
     if (!newMsg.trim() || !selected) return
 
     if (wsRef.current?.readyState === WebSocket.OPEN) {

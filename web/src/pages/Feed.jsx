@@ -6,8 +6,11 @@ import PostCard from '../components/PostCard'
 import SafeImage from '../components/SafeImage'
 import { isValidImageUrl } from '../utils/images'
 import { getUploadLimits, getFileSizeError } from '../utils/upload'
+import { useRequireAuth } from '../hooks/useRequireAuth'
+import { AUTH_MESSAGES } from '../utils/authMessages'
 
 export default function Feed() {
+  const requireAuth = useRequireAuth()
   const [config, setConfig] = useState(null)
   const [posts, setPosts] = useState([])
   const [page, setPage] = useState(1)
@@ -39,6 +42,7 @@ export default function Feed() {
 
   const handlePost = async (e) => {
     e.preventDefault()
+    if (!requireAuth(AUTH_MESSAGES.createPost)) return
     if (!newPost.trim()) return
     await api.createPost({ body: newPost, image_url: imageUrl || undefined })
     setNewPost('')
@@ -48,6 +52,10 @@ export default function Feed() {
   }
 
   const handleFileSelect = async (e) => {
+    if (!requireAuth(AUTH_MESSAGES.uploadMedia)) {
+      e.target.value = ''
+      return
+    }
     const file = e.target.files?.[0]
     if (!file) return
     const limits = getUploadLimits(config)
@@ -111,7 +119,10 @@ export default function Feed() {
             <button
               type="button"
               disabled={uploading}
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => {
+                if (!requireAuth(AUTH_MESSAGES.uploadMedia)) return
+                fileInputRef.current?.click()
+              }}
               className="p-2 rounded-xl text-slate-400 hover:bg-slate-50 disabled:opacity-50"
               title="Upload image or video (max 500KB / 2MB)"
             >

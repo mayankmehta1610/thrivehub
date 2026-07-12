@@ -5,12 +5,15 @@ import api from '../api/client'
 import Navbar from '../components/Navbar'
 import SafeImage from '../components/SafeImage'
 import { isValidImageUrl } from '../utils/images'
+import { useRequireAuth } from '../hooks/useRequireAuth'
+import { AUTH_MESSAGES } from '../utils/authMessages'
 
 export default function CommunityDetail() {
   const { slug } = useParams()
   const [config, setConfig] = useState(null)
   const [community, setCommunity] = useState(null)
   const [posts, setPosts] = useState([])
+  const requireAuth = useRequireAuth()
 
   useEffect(() => {
     api.getConfig().then(setConfig)
@@ -19,6 +22,7 @@ export default function CommunityDetail() {
   }, [slug])
 
   const handleJoin = async () => {
+    if (!requireAuth(AUTH_MESSAGES.joinCommunity)) return
     await api.joinCommunity(slug)
     const updated = await api.getCommunity(slug)
     setCommunity(updated)

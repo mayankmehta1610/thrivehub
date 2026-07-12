@@ -6,8 +6,11 @@ import {
 } from 'lucide-react'
 import api, { wakeApi } from '../api/client'
 import Navbar from '../components/Navbar'
+import AuthLink from '../components/AuthLink'
 import SafeImage from '../components/SafeImage'
 import { DEFAULT_PLACEHOLDER } from '../utils/images'
+import { AUTH_MESSAGES } from '../utils/authMessages'
+import { useRequireAuth } from '../hooks/useRequireAuth'
 
 const FALLBACK_CONFIG = {
   app_name: 'ThriveHub',
@@ -73,6 +76,7 @@ function formatEventDate(iso) {
 
 export default function Landing() {
   const [config, setConfig] = useState(FALLBACK_CONFIG)
+  const requireAuth = useRequireAuth()
 
   useEffect(() => {
     wakeApi()
@@ -160,15 +164,16 @@ export default function Landing() {
                 Dance, comedy, sports, adventure & more — find your tribe
               </p>
             </div>
-            <Link to="/register" className="text-orange-500 font-semibold hover:text-orange-600 transition-colors hidden md:block">
+            <AuthLink to="/feed" message={AUTH_MESSAGES.default} className="text-orange-500 font-semibold hover:text-orange-600 transition-colors hidden md:block">
               View all categories →
-            </Link>
+            </AuthLink>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
             {categories.map((cat) => (
-              <Link
+              <AuthLink
                 key={cat.code}
-                to="/register"
+                to="/feed"
+                message={AUTH_MESSAGES.default}
                 className="group relative rounded-lg overflow-hidden aspect-[3/4] card-hover shadow-sm border border-slate-100"
               >
                 <SafeImage
@@ -183,7 +188,7 @@ export default function Landing() {
                     <p className="text-slate-300 text-xs mt-1 line-clamp-2">{cat.description}</p>
                   )}
                 </div>
-              </Link>
+              </AuthLink>
             ))}
           </div>
         </div>
@@ -199,15 +204,16 @@ export default function Landing() {
                 <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Featured groups</h2>
                 <p className="text-slate-500 mt-1">Join groups built around what you love</p>
               </div>
-              <Link to="/register" className="text-orange-500 font-semibold hover:text-orange-600 hidden sm:block">
+              <AuthLink to="/communities" message={AUTH_MESSAGES.joinCommunity} className="text-orange-500 font-semibold hover:text-orange-600 hidden sm:block">
                 See all →
-              </Link>
+              </AuthLink>
             </div>
             <Carousel>
               {communities.map((c) => (
-                <Link
+                <AuthLink
                   key={c.id}
-                  to="/register"
+                  to={c.slug ? `/communities/${c.slug}` : '/communities'}
+                  message={AUTH_MESSAGES.joinCommunity}
                   className="flex-none w-72 snap-start rounded-lg overflow-hidden card-hover bg-white border border-slate-200 shadow-sm"
                 >
                   <div className="h-40 overflow-hidden">
@@ -220,7 +226,7 @@ export default function Landing() {
                       <Users className="w-4 h-4 text-orange-500" /> {c.member_count} members
                     </p>
                   </div>
-                </Link>
+                </AuthLink>
               ))}
             </Carousel>
           </div>
@@ -257,6 +263,13 @@ export default function Landing() {
                     <p className="text-orange-500 text-sm font-medium mt-3">
                       {e.participant_count} registered
                     </p>
+                    <button
+                      type="button"
+                      onClick={() => requireAuth(AUTH_MESSAGES.registerEvent)}
+                      className="mt-3 w-full py-2 rounded-md bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold transition-colors"
+                    >
+                      Register
+                    </button>
                   </div>
                 </div>
               ))}

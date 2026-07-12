@@ -1,8 +1,10 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import { wakeApi, NETWORK_ERROR } from '../api/client'
+import { consumeAuthMessage } from '../hooks/useRequireAuth'
 
 function isNetworkFailure(err) {
   return err?.isNetwork || err?.name === 'NetworkError' || err?.message === NETWORK_ERROR
@@ -15,6 +17,13 @@ export default function Register() {
   const [unreachable, setUnreachable] = useState(false)
   const { register } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const redirectTo = searchParams.get('redirect') || '/feed'
+
+  useEffect(() => {
+    const message = searchParams.get('message') || consumeAuthMessage()
+    if (message) toast.error(message)
+  }, [searchParams])
 
   const runRegister = async (e) => {
     e?.preventDefault()
@@ -33,7 +42,7 @@ export default function Register() {
     setStatus('submitting')
     try {
       await register(form)
-      navigate('/feed')
+      navigate(redirectTo.startsWith('/') ? redirectTo : '/feed', { replace: true })
     } catch (err) {
       setError(err.message)
       setUnreachable(isNetworkFailure(err))

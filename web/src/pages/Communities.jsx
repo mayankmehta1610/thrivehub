@@ -6,8 +6,11 @@ import Navbar from '../components/Navbar'
 import DataTable from '../components/DataTable'
 import SafeImage from '../components/SafeImage'
 import { isValidImageUrl } from '../utils/images'
+import { useRequireAuth } from '../hooks/useRequireAuth'
+import { AUTH_MESSAGES } from '../utils/authMessages'
 
 export default function Communities() {
+  const requireAuth = useRequireAuth()
   const [config, setConfig] = useState(null)
   const [communities, setCommunities] = useState([])
   const [total, setTotal] = useState(0)
@@ -31,6 +34,7 @@ export default function Communities() {
 
   const handleCreate = async (e) => {
     e.preventDefault()
+    if (!requireAuth(AUTH_MESSAGES.createCommunity)) return
     await api.createCommunity(form)
     setShowCreate(false)
     setForm({ name: '', slug: '', description: '' })
@@ -43,7 +47,7 @@ export default function Communities() {
       <div className="max-w-6xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold gradient-text">Communities</h1>
-          <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl gradient-hero text-white text-sm font-medium">
+          <button onClick={() => requireAuth(AUTH_MESSAGES.createCommunity) && setShowCreate(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl gradient-hero text-white text-sm font-medium">
             <Plus className="w-4 h-4" /> Create Community
           </button>
         </div>

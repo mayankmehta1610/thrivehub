@@ -9,6 +9,8 @@ import Navbar from '../components/Navbar'
 import PostCard from '../components/PostCard'
 import SafeImage from '../components/SafeImage'
 import { useAuth } from '../context/AuthContext'
+import { useRequireAuth } from '../hooks/useRequireAuth'
+import { AUTH_MESSAGES } from '../utils/authMessages'
 import { filterValidImages } from '../utils/images'
 import { getUploadLimits, getFileSizeError } from '../utils/upload'
 
@@ -53,6 +55,7 @@ function PhotoLightbox({ photo, onClose }) {
 export default function Profile() {
   const { username } = useParams()
   const { user: currentUser } = useAuth()
+  const requireAuth = useRequireAuth()
   const [config, setConfig] = useState(null)
   const [profile, setProfile] = useState(null)
   const [posts, setPosts] = useState([])
@@ -107,6 +110,7 @@ export default function Profile() {
   const avatarUrl = profile?.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200'
 
   const toggleFollow = async () => {
+    if (!requireAuth(AUTH_MESSAGES.follow)) return
     if (following) {
       await api.unfollowUser(username)
       setFollowing(false)
@@ -117,6 +121,7 @@ export default function Profile() {
   }
 
   const handleBlock = async () => {
+    if (!requireAuth(AUTH_MESSAGES.block)) return
     if (!profile?.user_id) return
     if (blocked) {
       await api.unblockUser(profile.user_id)
@@ -128,6 +133,7 @@ export default function Profile() {
   }
 
   const handleMute = async () => {
+    if (!requireAuth(AUTH_MESSAGES.mute)) return
     if (!profile?.user_id) return
     if (muted) {
       await api.unmuteUser(profile.user_id)
@@ -139,6 +145,7 @@ export default function Profile() {
   }
 
   const handleReport = async () => {
+    if (!requireAuth(AUTH_MESSAGES.report)) return
     if (!profile?.user_id || !reportReason.trim()) return
     await api.createReport({
       target_type: 'user',
@@ -151,6 +158,7 @@ export default function Profile() {
   }
 
   const saveProfile = async () => {
+    if (!requireAuth(AUTH_MESSAGES.editProfile)) return
     const updated = await api.updateProfile(editForm)
     setProfile(updated)
     setEditing(false)
@@ -158,6 +166,7 @@ export default function Profile() {
   }
 
   const handlePhotoUpload = async (file, field) => {
+    if (!requireAuth(AUTH_MESSAGES.uploadMedia)) return
     if (!file) return
     const limits = getUploadLimits(config)
     const sizeError = getFileSizeError(file, limits)
@@ -240,7 +249,7 @@ export default function Profile() {
 
               <div className="flex gap-2 shrink-0 self-start sm:self-end">
                 {isOwn ? (
-                  <button onClick={() => setEditing(true)} className="btn-edit-profile">
+                  <button onClick={() => requireAuth(AUTH_MESSAGES.editProfile) && setEditing(true)} className="btn-edit-profile">
                     <Edit className="w-4 h-4" /> Edit Profile
                   </button>
                 ) : (
@@ -261,7 +270,7 @@ export default function Profile() {
                       className={`p-2 rounded-lg border ${muted ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-white text-slate-500 border-slate-200'}`}>
                       <VolumeX className="w-4 h-4" />
                     </button>
-                    <button onClick={() => setShowReport(true)} title="Report"
+                    <button onClick={() => requireAuth(AUTH_MESSAGES.report) && setShowReport(true)} title="Report"
                       className="p-2 rounded-lg border bg-white text-slate-500 border-slate-200">
                       <Flag className="w-4 h-4" />
                     </button>

@@ -6,10 +6,13 @@ import SafeImage from './SafeImage'
 import CommentSection from './CommentSection'
 import EngagementModal from './EngagementModal'
 import { useAuth } from '../context/AuthContext'
+import { useRequireAuth } from '../hooks/useRequireAuth'
+import { AUTH_MESSAGES } from '../utils/authMessages'
 import { isValidImageUrl } from '../utils/images'
 
 export default function PostCard({ post, onUpdate, isOwn = false }) {
   const { user } = useAuth()
+  const requireAuth = useRequireAuth()
   const [showComments, setShowComments] = useState(false)
   const [engagementModal, setEngagementModal] = useState(null)
   const [localPost, setLocalPost] = useState(post)
@@ -42,7 +45,8 @@ export default function PostCard({ post, onUpdate, isOwn = false }) {
   }
 
   const toggleReaction = async (reactionType) => {
-    if (!user) return
+    const message = reactionType === 'like' ? AUTH_MESSAGES.like : AUTH_MESSAGES.dislike
+    if (!requireAuth(message)) return
     try {
       const isSame = p.user_reaction_type === reactionType
       if (isSame) {
@@ -76,6 +80,7 @@ export default function PostCard({ post, onUpdate, isOwn = false }) {
   }
 
   const handleShare = async () => {
+    if (!requireAuth(AUTH_MESSAGES.share)) return
     const url = `${window.location.origin}/feed?post=${p.id}`
     try {
       if (navigator.share) {
@@ -103,6 +108,7 @@ export default function PostCard({ post, onUpdate, isOwn = false }) {
   }
 
   const toggleCommentsEnabled = async () => {
+    if (!requireAuth(AUTH_MESSAGES.default)) return
     setTogglingComments(true)
     try {
       const updated = await api.updatePost(p.id, { comments_enabled: !p.comments_enabled })
@@ -202,7 +208,10 @@ export default function PostCard({ post, onUpdate, isOwn = false }) {
           </CountButton>
 
           <button
-            onClick={() => setShowComments(!showComments)}
+            onClick={() => {
+              if (!user && !requireAuth(AUTH_MESSAGES.comment)) return
+              setShowComments(!showComments)
+            }}
             className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-indigo-500"
           >
             <MessageCircle className="w-5 h-5" />
@@ -211,6 +220,7 @@ export default function PostCard({ post, onUpdate, isOwn = false }) {
             count={p.comment_count}
             onClick={() => {
               if (p.comment_count > 0) setEngagementModal('comments')
+              else if (!user && !requireAuth(AUTH_MESSAGES.comment)) return
               else setShowComments(true)
             }}
             className="text-slate-500 hover:text-indigo-500 -ml-3"
