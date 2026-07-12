@@ -7,7 +7,9 @@ import {
 import api from '../api/client'
 import Navbar from '../components/Navbar'
 import PostCard from '../components/PostCard'
+import SafeImage from '../components/SafeImage'
 import { useAuth } from '../context/AuthContext'
+import { filterValidImages } from '../utils/images'
 import { getUploadLimits, getFileSizeError } from '../utils/upload'
 
 const SKILL_ICONS = {
@@ -39,7 +41,7 @@ function PhotoLightbox({ photo, onClose }) {
         <X className="w-6 h-6" />
       </button>
       <div onClick={(e) => e.stopPropagation()} className="text-center">
-        <img src={photo.url} alt={photo.caption || 'Gallery photo'} />
+        <SafeImage src={photo.url} alt={photo.caption || 'Gallery photo'} className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg" />
         {photo.caption && (
           <p className="mt-3 text-white/90 text-sm max-w-lg mx-auto">{photo.caption}</p>
         )}
@@ -187,7 +189,7 @@ export default function Profile() {
   }
 
   const skills = profile.skills || []
-  const photos = profile.photos || []
+  const photos = filterValidImages(profile.photos || [], 'url')
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -197,7 +199,7 @@ export default function Profile() {
         {/* Cover photo */}
         <div className="profile-cover">
           {coverUrl ? (
-            <img src={coverUrl} alt="" />
+            <SafeImage src={coverUrl} alt="" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full gradient-hero" />
           )}
@@ -208,7 +210,7 @@ export default function Profile() {
           {/* Header card — name & actions on solid white background */}
           <div className="profile-header-card">
             <div className="flex flex-col sm:flex-row sm:items-end gap-4">
-              <img
+              <SafeImage
                 src={avatarUrl}
                 alt={profile.display_name}
                 className="profile-avatar -mt-14 sm:-mt-16 shrink-0"
@@ -337,7 +339,11 @@ export default function Profile() {
                     onClick={() => setLightboxPhoto(photo)}
                     aria-label={photo.caption || 'View photo'}
                   >
-                    <img src={photo.url} alt={photo.caption || ''} loading="lazy" />
+                    <SafeImage
+                      src={photo.url}
+                      alt={photo.caption || ''}
+                      className="w-full h-full object-cover"
+                    />
                   </button>
                 ))}
               </div>

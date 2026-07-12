@@ -4,6 +4,8 @@ import { Plus, Users } from 'lucide-react'
 import api from '../api/client'
 import Navbar from '../components/Navbar'
 import DataTable from '../components/DataTable'
+import SafeImage from '../components/SafeImage'
+import { isValidImageUrl } from '../utils/images'
 
 export default function Communities() {
   const [config, setConfig] = useState(null)
@@ -49,7 +51,9 @@ export default function Communities() {
         <div className="grid md:grid-cols-2 gap-4 mb-8">
           {communities.map((c) => (
             <Link key={c.id} to={`/communities/${c.slug}`} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 card-hover">
-              <img src={c.cover_url} alt="" className="w-full h-36 object-cover" />
+              {isValidImageUrl(c.cover_url) && (
+                <SafeImage src={c.cover_url} alt="" className="w-full h-36 object-cover" hideOnError />
+              )}
               <div className="p-4">
                 <h3 className="font-bold text-lg">{c.name}</h3>
                 <p className="text-sm text-slate-500 line-clamp-2">{c.description}</p>

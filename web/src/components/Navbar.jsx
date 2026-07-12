@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import { Bell, Home, LogOut, MessageCircle, Search, Users, Calendar, Settings } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import SafeImage from './SafeImage'
 
 export default function Navbar({ config, dark = false }) {
   const { user, logout } = useAuth()
@@ -65,11 +66,10 @@ export default function Navbar({ config, dark = false }) {
                 to={`/profile/${user.profile?.username}`}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-md hover:bg-slate-50"
               >
-                <img
+                <SafeImage
                   src={user.profile?.avatar_url}
                   alt=""
                   className="w-8 h-8 rounded-full object-cover ring-2 ring-slate-200"
-                  referrerPolicy="no-referrer"
                 />
                 <span className="hidden sm:block text-sm font-medium text-slate-700">{user.profile?.display_name}</span>
               </Link>

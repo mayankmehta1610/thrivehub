@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
@@ -42,16 +43,43 @@ from app.models import (
 )
 from app.utils.security import hash_password
 
-# ── Unsplash image URLs (free license, hotlink OK) ──────────────────────────
+# ── Verified image URLs (Unsplash / Pexels, hotlink OK) ─────────────────────
 
-HERO_IMAGE = "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1600"
+def _img(photo_id: str, w: int = 800) -> str:
+    return f"https://images.unsplash.com/photo-{photo_id}?w={w}&q=80&auto=format&fit=crop"
+
+
+HERO_IMAGE = _img("1529156069898-49953e39b3ac", 1600)
+IMG_HIKING = _img("1682687220063-4742bd7fd538")
+IMG_MUSIC_STUDIO = _img("1511671782779-c97d3d27a1d4")
+IMG_MUSIC_ACOUSTIC = _img("1493225457124-a3eb161ffa5f")
+IMG_MARATHON = _img("1594882645126-14020914d58d")
+IMG_TRAIL_RUN = _img("1552674605-db6ffd4facb5")
+IMG_SKYLINE = _img("1480714378408-67cf0d13bc1b")
+IMG_STREET = _img("1500530855697-b586d89ba3ee")
+IMG_COMEDY_WRITING = _img("1486312338219-ce68d2c6f44d")
+IMG_DANCE_CLASS = _img("1508700115892-45ecd05ae2ad")
+IMG_OUTDOOR_WORKOUT = _img("1571019613454-1cb2f99b2d8b")
+
+# Broken Unsplash photo IDs → verified replacements (idempotent DB fix on restart)
+BROKEN_PHOTO_IDS: dict[str, str] = {
+    "1551632811-561732d1e58e": "1682687220063-4742bd7fd538",
+    "1511379938543-c1f69419868d": "1511671782779-c97d3d27a1d4",
+    "1452626038306-9d505387a3a8": "1594882645126-14020914d58d",
+    "1476480862128-209bfaa8edc8": "1552674605-db6ffd4facb5",
+    "1477959858617-67f85ebb4e09": "1480714378408-67cf0d13bc1b",
+    "1516035069371-29a1b244cc00": "1500530855697-b586d89ba3ee",
+    "1527224535757-9fc19466b1e5": "1486312338219-ce68d2c6f44d",
+    "1545950250-29ebb58419f4": "1508700115892-45ecd05ae2ad",
+    "1571019614242-c5c5dee9f50e": "1571019613454-1cb2f99b2d8b",
+}
 
 SKILL_CATEGORIES = [
     ("dance", "Dance", "Express yourself through movement", "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800"),
     ("standup", "Standup Comedy", "Make 'em laugh on stage", "https://images.unsplash.com/photo-1585699324551-f6c309eedeca?w=800"),
     ("sports", "Sports", "Compete, train, and win together", "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800"),
-    ("adventure", "Adventure", "Explore trails, peaks, and beyond", "https://images.unsplash.com/photo-1551632811-561732d1e58e?w=800"),
-    ("music", "Music", "Jam, perform, and discover artists", "https://images.unsplash.com/photo-1511379938543-c1f69419868d?w=800"),
+    ("adventure", "Adventure", "Explore trails, peaks, and beyond", IMG_HIKING),
+    ("music", "Music", "Jam, perform, and discover artists", IMG_MUSIC_ACOUSTIC),
     ("art", "Art & Design", "Create, share, and inspire", "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=800"),
     ("fitness", "Fitness", "Build strength and healthy habits", "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800"),
     ("photography", "Photography", "Capture moments that matter", "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=800"),
@@ -96,7 +124,7 @@ COVERS = [
     "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200",
     "https://images.unsplash.com/photo-1504609773096-104ff2c73ba4?w=1200",
     "https://images.unsplash.com/photo-1585699324551-f6c309eedeca?w=1200",
-    "https://images.unsplash.com/photo-1511379938543-c1f69419868d?w=1200",
+    _img("1511671782779-c97d3d27a1d4", 1200),
     "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=1200",
     "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=1200",
     "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1200",
@@ -131,8 +159,8 @@ RICH_PROFILES: dict[str, dict] = {
         "photos": [
             ("https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800", "Salsa night energy"),
             ("https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=800", "Golden hour portrait session"),
-            ("https://images.unsplash.com/photo-1551632811-561732d1e58e?w=800", "Summit sunrise hike"),
-            ("https://images.unsplash.com/photo-1511379938543-c1f69419868d?w=800", "Acoustic jam session"),
+            (IMG_HIKING, "Summit sunrise hike"),
+            (IMG_MUSIC_ACOUSTIC, "Acoustic jam session"),
             ("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800", "Alpine trail adventure"),
         ],
         "posts": [
@@ -148,8 +176,8 @@ RICH_PROFILES: dict[str, dict] = {
         "bio": "Marathon runner, trail explorer, and community builder. I believe every mile tells a story. Organizing group runs and outdoor meetups across the Bay Area.",
         "skills": ["running", "adventure", "sports", "fitness"],
         "photos": [
-            ("https://images.unsplash.com/photo-1452626038306-9d505387a3a8?w=800", "Marathon finish line"),
-            ("https://images.unsplash.com/photo-1476480862128-209bfaa8edc8?w=800", "Trail run at dawn"),
+            (IMG_MARATHON, "Marathon finish line"),
+            (IMG_TRAIL_RUN, "Trail run at dawn"),
             ("https://images.unsplash.com/photo-1522163182402-834f871fd851?w=800", "Climbing session"),
         ],
     },
@@ -159,7 +187,7 @@ RICH_PROFILES: dict[str, dict] = {
         "photos": [
             ("https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800", "Mountain vista"),
             ("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800", "Alpine lake"),
-            ("https://images.unsplash.com/photo-1551632811-561732d1e58e?w=800", "Summit camp"),
+            (IMG_HIKING, "Summit camp"),
         ],
     },
     "jordanlee": {
@@ -176,7 +204,7 @@ RICH_PROFILES: dict[str, dict] = {
         "photos": [
             ("https://images.unsplash.com/photo-1504609773096-104ff2c73ba4?w=800", "Studio rehearsal"),
             ("https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800", "Performance night"),
-            ("https://images.unsplash.com/photo-1545950250-29ebb58419f4?w=800", "Group class"),
+            (IMG_DANCE_CLASS, "Group class"),
         ],
     },
     "marcuswebb": {
@@ -184,15 +212,15 @@ RICH_PROFILES: dict[str, dict] = {
         "skills": ["standup", "public_speaking", "music"],
         "photos": [
             ("https://images.unsplash.com/photo-1585699324551-f6c309eedeca?w=800", "Open mic night"),
-            ("https://images.unsplash.com/photo-1527224535757-9fc19466b1e5?w=800", "Writing session"),
+            (IMG_COMEDY_WRITING, "Writing session"),
         ],
     },
     "miatorres": {
         "bio": "Singer-songwriter and music teacher. Acoustic covers, original compositions, and vocal coaching for all ages.",
         "skills": ["music", "public_speaking", "art"],
         "photos": [
-            ("https://images.unsplash.com/photo-1511379938543-c1f69419868d?w=800", "Studio recording"),
-            ("https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800", "Live acoustic set"),
+            (IMG_MUSIC_STUDIO, "Studio recording"),
+            (IMG_MUSIC_ACOUSTIC, "Live acoustic set"),
         ],
     },
     "elenapark": {
@@ -210,8 +238,8 @@ RICH_PROFILES: dict[str, dict] = {
         "photos": [
             ("https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=800", "Waterfront golden hour"),
             ("https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800", "Forest light"),
-            ("https://images.unsplash.com/photo-1477959858617-67f85ebb4e09?w=800", "City skyline"),
-            ("https://images.unsplash.com/photo-1516035069371-29a1b244cc00?w=800", "Street portrait"),
+            (IMG_SKYLINE, "City skyline"),
+            (IMG_STREET, "Street portrait"),
         ],
     },
     "rileybrooks": {
@@ -219,7 +247,7 @@ RICH_PROFILES: dict[str, dict] = {
         "skills": ["fitness", "sports", "coaching"],
         "photos": [
             ("https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800", "Gym session"),
-            ("https://images.unsplash.com/photo-1571019614242-c5c5dee9f50e?w=800", "Outdoor workout"),
+            (IMG_OUTDOOR_WORKOUT, "Outdoor workout"),
         ],
     },
     "sofiamendez": {
@@ -234,6 +262,84 @@ RICH_PROFILES: dict[str, dict] = {
 }
 
 SKILL_KEY_PREFIXES = ("skill_category:", "skill:", "sport:", "adventure:")
+
+
+def _fix_image_url(url: str | None) -> str | None:
+    """Replace known-broken Unsplash photo IDs with verified working URLs."""
+    if not url:
+        return url
+    for broken_id, fixed_id in BROKEN_PHOTO_IDS.items():
+        if broken_id in url:
+            w_match = re.search(r"w=(\d+)", url)
+            w = int(w_match.group(1)) if w_match else 800
+            return _img(fixed_id, w)
+    return url
+
+
+def fix_broken_images(db: Session, tenant_id: str) -> None:
+    """Idempotent repair of broken image URLs in existing seeded records."""
+    for photo in db.query(ProfilePhoto).join(Profile).join(User).filter(User.tenant_id == tenant_id).all():
+        fixed = _fix_image_url(photo.url)
+        if fixed and fixed != photo.url:
+            photo.url = fixed
+
+    for profile in db.query(Profile).join(User).filter(User.tenant_id == tenant_id).all():
+        if profile.avatar_url:
+            fixed = _fix_image_url(profile.avatar_url)
+            if fixed != profile.avatar_url:
+                profile.avatar_url = fixed
+        if profile.cover_url:
+            fixed = _fix_image_url(profile.cover_url)
+            if fixed != profile.cover_url:
+                profile.cover_url = fixed
+
+    for post in db.query(Post).filter(Post.tenant_id == tenant_id).all():
+        if post.image_url:
+            fixed = _fix_image_url(post.image_url)
+            if fixed != post.image_url:
+                post.image_url = fixed
+
+    for comm in db.query(Community).filter(Community.tenant_id == tenant_id).all():
+        if comm.cover_url:
+            fixed = _fix_image_url(comm.cover_url)
+            if fixed != comm.cover_url:
+                comm.cover_url = fixed
+
+    for event in db.query(Event).filter(Event.tenant_id == tenant_id).all():
+        if event.image_url:
+            fixed = _fix_image_url(event.image_url)
+            if fixed != event.image_url:
+                event.image_url = fixed
+
+    for sponsor in db.query(Sponsorship).filter(Sponsorship.tenant_id == tenant_id).all():
+        if sponsor.image_url:
+            fixed = _fix_image_url(sponsor.image_url)
+            if fixed != sponsor.image_url:
+                sponsor.image_url = fixed
+
+    for master in db.query(MasterValue).filter(MasterValue.tenant_id == tenant_id).all():
+        if not master.metadata_json:
+            continue
+        try:
+            meta = json.loads(master.metadata_json)
+        except (json.JSONDecodeError, TypeError):
+            continue
+        img_url = meta.get("image_url")
+        if img_url:
+            fixed = _fix_image_url(img_url)
+            if fixed != img_url:
+                meta["image_url"] = fixed
+                master.metadata_json = json.dumps(meta)
+
+    hero = db.query(MasterValue).filter(
+        MasterValue.tenant_id == tenant_id,
+        MasterValue.master_type == "platform_config",
+        MasterValue.code == "hero_image",
+    ).first()
+    if hero and hero.label:
+        fixed = _fix_image_url(hero.label)
+        if fixed != hero.label:
+            hero.label = fixed
 
 
 def _upsert_master(db: Session, tenant_id: str, mtype: str, code: str, label: str,
@@ -304,8 +410,24 @@ def _seed_profile_skills(db: Session, profile: Profile, skill_codes: list[str], 
 
 def _seed_profile_photos(db: Session, profile: Profile, photos: list[tuple[str, str]]) -> None:
     for i, (url, caption) in enumerate(photos):
-        exists = db.query(ProfilePhoto).filter(ProfilePhoto.profile_id == profile.id, ProfilePhoto.url == url).first()
+        exists = db.query(ProfilePhoto).filter(
+            ProfilePhoto.profile_id == profile.id,
+            ProfilePhoto.caption == caption,
+        ).first()
         if not exists:
+            for broken_id in BROKEN_PHOTO_IDS:
+                exists = db.query(ProfilePhoto).filter(
+                    ProfilePhoto.profile_id == profile.id,
+                    ProfilePhoto.url.contains(broken_id),
+                    ProfilePhoto.sort_order == i,
+                ).first()
+                if exists:
+                    break
+        if exists:
+            exists.url = url
+            exists.caption = caption
+            exists.sort_order = i
+        else:
             db.add(ProfilePhoto(profile_id=profile.id, url=url, caption=caption, sort_order=i))
 
 
@@ -458,6 +580,8 @@ def _ensure_community(db: Session, tenant, owner: User, name: str, slug: str, de
                       cover_url: str, category_code: str, master_map: dict, extra_members: list[User] | None = None) -> Community | None:
     existing = db.query(Community).filter(Community.tenant_id == tenant.id, Community.slug == slug).first()
     if existing:
+        if cover_url and existing.cover_url != cover_url:
+            existing.cover_url = cover_url
         return existing
     cat_id = master_map.get(f"community_category:{category_code}") or master_map.get(f"skill_category:{category_code}")
     c = Community(
@@ -477,6 +601,8 @@ def _ensure_event(db: Session, tenant, organiser: User, title: str, desc: str, v
                   master_map: dict, community_id: str | None = None) -> Event | None:
     existing = db.query(Event).filter(Event.tenant_id == tenant.id, Event.title == title).first()
     if existing:
+        if image_url and existing.image_url != image_url:
+            existing.image_url = image_url
         return existing
     now = datetime.now(timezone.utc)
     e = Event(
@@ -496,6 +622,8 @@ def _ensure_post(db: Session, tenant, author: User, body: str, ptype: PostType,
         Post.tenant_id == tenant.id, Post.author_id == author.id, Post.body == body,
     ).first()
     if existing:
+        if image_url is not None and existing.image_url != image_url:
+            existing.image_url = image_url
         return existing
     post = Post(
         tenant_id=tenant.id, author_id=author.id, body=body, type=ptype,
@@ -632,7 +760,7 @@ def seed_demo_content(db: Session, tenant: Tenant, users: list[User], master_map
          [by_email.get("sam@thrivehub.com"), by_email.get("jordan@thrivehub.com")]),
         (by_email.get("sam@thrivehub.com"), "City Runners Club", "city-runners",
          "Running community for all paces — from 5K to ultra",
-         "https://images.unsplash.com/photo-1476480862128-209bfaa8edc8?w=1200", "sports",
+         _img("1552674605-db6ffd4facb5", 1200), "sports",
          [by_email.get("riley@thrivehub.com")]),
         (by_email.get("dancer@thrivehub.com"), "Dance Collective", "dance-collective",
          "Salsa, hip-hop, contemporary — all styles welcome!",
@@ -666,7 +794,7 @@ def seed_demo_content(db: Session, tenant: Tenant, users: list[User], master_map
 
     events_data = [
         (by_email.get("alex@thrivehub.com"), "Weekend Trail Run", "10K trail run through scenic routes. Bring water and good shoes!",
-         "Golden Gate Park", "https://images.unsplash.com/photo-1476480862128-209bfaa8edc8?w=1200", 7, 50, "meetup"),
+         "Golden Gate Park", _img("1552674605-db6ffd4facb5", 1200), 7, 50, "meetup"),
         (by_email.get("sam@thrivehub.com"), "Rock Climbing Workshop", "Beginner-friendly climbing session with certified instructors.",
          "Vertical World Gym", "https://images.unsplash.com/photo-1522163182402-834f871fd851?w=1200", 14, 20, "workshop"),
         (by_email.get("dancer@thrivehub.com"), "Salsa Night Workshop", "Learn basic salsa steps then social dance all evening!",
@@ -688,7 +816,7 @@ def seed_demo_content(db: Session, tenant: Tenant, users: list[User], master_map
 
     posts_data = [
         (by_email.get("alex@thrivehub.com"), "Just completed my first marathon! 26.2 miles of pure determination. Who's joining me for the next one?",
-         PostType.achievement, "https://images.unsplash.com/photo-1452626038306-9d505387a3a8?w=800"),
+         PostType.achievement, IMG_MARATHON),
         (by_email.get("sam@thrivehub.com"), "Sunrise hike at Mount Tam was absolutely breathtaking today. Nature therapy at its finest.",
          PostType.image, "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800"),
         (by_email.get("jordan@thrivehub.com"), "Hosting a weekend football meetup! All skill levels welcome. DM me for details.",
@@ -700,7 +828,7 @@ def seed_demo_content(db: Session, tenant: Tenant, users: list[User], master_map
         (by_email.get("comedian@thrivehub.com"), "Writing new material. What's the worst date you've ever been on? Need inspiration!",
          PostType.image, "https://images.unsplash.com/photo-1585699324551-f6c309eedeca?w=800"),
         (by_email.get("mia@thrivehub.com"), "Dropped a new acoustic cover on my profile — feedback welcome from fellow musicians!",
-         PostType.image, "https://images.unsplash.com/photo-1511379938543-c1f69419868d?w=800"),
+         PostType.image, IMG_MUSIC_ACOUSTIC),
         (by_email.get("chef@thrivehub.com"), "Korean BBQ night at home! Marinated galbi for 24 hours — recipe in comments.",
          PostType.image, "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800"),
         (by_email.get("lens@thrivehub.com"), "Golden hour at the waterfront never disappoints. Swipe for the full series.",
@@ -814,6 +942,7 @@ def seed_supplemental(db: Session, tenant=None, users=None, master_map=None):
         master_map = seed_platform_masters(db, tenant.id)
 
     users = users or seed_demo_users(db, tenant.id)
+    fix_broken_images(db, tenant.id)
     seed_demo_content(db, tenant, users, master_map)
     seed_rich_profiles(db, tenant.id, master_map, users)
 
@@ -862,7 +991,12 @@ def seed_supplemental(db: Session, tenant=None, users=None, master_map=None):
         exists = db.query(Sponsorship).filter(
             Sponsorship.tenant_id == tenant.id, Sponsorship.title == title,
         ).first()
-        if not exists:
+        if exists:
+            exists.image_url = image_url
+            exists.link_url = link_url
+            exists.placement = placement
+            exists.sort_order = sort_order
+        else:
             db.add(Sponsorship(
                 tenant_id=tenant.id, title=title, sponsor_name=sponsor_name,
                 image_url=image_url, link_url=link_url, placement=placement, sort_order=sort_order,

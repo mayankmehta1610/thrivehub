@@ -6,11 +6,13 @@ import {
 } from 'lucide-react'
 import api from '../api/client'
 import Navbar from '../components/Navbar'
+import SafeImage from '../components/SafeImage'
+import { DEFAULT_PLACEHOLDER } from '../utils/images'
 
 const FALLBACK_CONFIG = {
   app_name: 'ThriveHub',
   tagline: 'Where skills, sports & adventures come alive',
-  hero_image: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1600&q=80',
+  hero_image: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1600&q=80&auto=format&fit=crop',
   hero_subtitle: 'Join vibrant communities for dance, comedy, sports, music & more',
   primary_color: '#0f172a',
   secondary_color: '#1e293b',
@@ -25,30 +27,13 @@ const FALLBACK_CONFIG = {
     { code: 'dance', label: 'Dance', description: 'Express yourself through movement', image_url: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&q=80' },
     { code: 'standup', label: 'Standup Comedy', description: 'Make them laugh on stage', image_url: 'https://images.unsplash.com/photo-1585699324551-f6c309eedeca?w=800&q=80' },
     { code: 'sports', label: 'Sports', description: 'Compete, train, and win together', image_url: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&q=80' },
-    { code: 'adventure', label: 'Adventure', description: 'Explore trails, peaks, and beyond', image_url: 'https://images.unsplash.com/photo-1551632811-561732d1e58e?w=800&q=80' },
-    { code: 'music', label: 'Music', description: 'Jam, perform, and discover artists', image_url: 'https://images.unsplash.com/photo-1511379938543-c1f69419868d?w=800&q=80' },
+    { code: 'adventure', label: 'Adventure', description: 'Explore trails, peaks, and beyond', image_url: 'https://images.unsplash.com/photo-1682687220063-4742bd7fd538?w=800&q=80&auto=format&fit=crop' },
+    { code: 'music', label: 'Music', description: 'Jam, perform, and discover artists', image_url: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80&auto=format&fit=crop' },
     { code: 'art', label: 'Art & Design', description: 'Create, share, and inspire', image_url: 'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=800&q=80' },
     { code: 'fitness', label: 'Fitness', description: 'Build strength and healthy habits', image_url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80' },
     { code: 'photography', label: 'Photography', description: 'Capture moments that matter', image_url: 'https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=800&q=80' },
   ],
   stats: { members: 0, communities: 0, events: 0, skill_categories: 8 },
-}
-
-const PLACEHOLDER = 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&q=80'
-
-function SafeImage({ src, alt, className, fallback = PLACEHOLDER }) {
-  const [url, setUrl] = useState(src || fallback)
-  useEffect(() => { setUrl(src || fallback) }, [src, fallback])
-  return (
-    <img
-      src={url}
-      alt={alt}
-      className={className}
-      loading="lazy"
-      referrerPolicy="no-referrer"
-      onError={() => { if (url !== fallback) setUrl(fallback) }}
-    />
-  )
 }
 
 function Carousel({ children, className = '' }) {
@@ -114,7 +99,7 @@ export default function Landing() {
           src={config?.hero_image}
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
-          fallback={FALLBACK_CONFIG.hero_image}
+          fallback={FALLBACK_CONFIG.hero_image || DEFAULT_PLACEHOLDER}
         />
         <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-900/80 to-slate-900/50" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-24 md:py-32 w-full">
@@ -365,7 +350,7 @@ export default function Landing() {
           src={config?.hero_image}
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
-          fallback={FALLBACK_CONFIG.hero_image}
+          fallback={FALLBACK_CONFIG.hero_image || DEFAULT_PLACEHOLDER}
         />
         <div className="absolute inset-0 bg-slate-950/85" />
         <div className="relative max-w-2xl mx-auto px-4 text-center">

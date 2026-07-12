@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Heart, MessageCircle, Share2, MoreHorizontal } from 'lucide-react'
 import api from '../api/client'
+import SafeImage from './SafeImage'
+import { isValidImageUrl } from '../utils/images'
 
 export default function PostCard({ post, onUpdate }) {
   const [comments, setComments] = useState([])
@@ -57,7 +59,7 @@ export default function PostCard({ post, onUpdate }) {
   return (
     <article className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden card-hover">
       <div className="p-4 flex items-center gap-3">
-        <img
+        <SafeImage
           src={post.author?.avatar_url}
           alt=""
           className="w-11 h-11 rounded-full object-cover ring-2 ring-indigo-100"
@@ -75,8 +77,8 @@ export default function PostCard({ post, onUpdate }) {
         <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">{post.body}</p>
       </div>
 
-      {post.image_url && (
-        <img src={post.image_url} alt="" className="w-full max-h-96 object-cover" />
+      {isValidImageUrl(post.image_url) && (
+        <SafeImage src={post.image_url} alt="" className="w-full max-h-96 object-cover" hideOnError />
       )}
 
       <div className="px-4 py-3 flex items-center gap-6 border-t border-slate-50">
@@ -121,7 +123,7 @@ export default function PostCard({ post, onUpdate }) {
           </form>
           {comments.map((c) => (
             <div key={c.id} className="flex gap-2 py-2">
-              <img src={c.author?.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+              <SafeImage src={c.author?.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
               <div className="bg-white rounded-xl px-3 py-2 flex-1">
                 <p className="text-sm font-medium">{c.author?.display_name}</p>
                 <p className="text-sm text-slate-600">{c.body}</p>

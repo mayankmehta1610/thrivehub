@@ -25,6 +25,14 @@ from app.utils.pagination import PaginationParams, apply_pagination, paginated
 
 router = APIRouter(tags=["Platform"])
 
+DEFAULT_HERO_IMAGE = "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1600&q=80&auto=format&fit=crop"
+
+
+def _valid_image_url(url: str | None) -> str | None:
+    if not url or not str(url).strip():
+        return None
+    return url
+
 
 def _meta_image(m: MasterValue) -> str | None:
     if not m.metadata_json:
@@ -96,7 +104,7 @@ def platform_config(db: Session = Depends(get_db)):
         .all()
     )
     skill_categories = [
-        SkillCategoryItem(code=c.code, label=c.label, description=c.description, image_url=_meta_image(c))
+        SkillCategoryItem(code=c.code, label=c.label, description=c.description, image_url=_valid_image_url(_meta_image(c)))
         for c in skill_cats
     ]
 
@@ -114,7 +122,7 @@ def platform_config(db: Session = Depends(get_db)):
         ).scalar() or 0
         featured_communities.append(FeaturedCommunityItem(
             id=c.id, name=c.name, slug=c.slug, description=c.description,
-            cover_url=c.cover_url, member_count=member_count,
+            cover_url=_valid_image_url(c.cover_url), member_count=member_count,
         ))
 
     events_q = (
@@ -129,13 +137,13 @@ def platform_config(db: Session = Depends(get_db)):
         ).scalar() or 0
         featured_events.append(FeaturedEventItem(
             id=e.id, title=e.title, description=e.description, venue=e.venue,
-            image_url=e.image_url, start_at=e.start_at, participant_count=participant_count,
+            image_url=_valid_image_url(e.image_url), start_at=e.start_at, participant_count=participant_count,
         ))
 
     posts_q = (
         db.query(Post)
         .options(joinedload(Post.author).joinedload(User.profile))
-        .filter(Post.status == "published", Post.image_url.isnot(None))
+        .filter(Post.status == "published", Post.image_url.isnot(None), Post.image_url != "")
         .order_by(Post.created_at.desc())
         .limit(6)
     )
@@ -143,9 +151,9 @@ def platform_config(db: Session = Depends(get_db)):
     for p in posts_q:
         profile = p.author.profile if p.author else None
         featured_posts.append(FeaturedPostItem(
-            id=p.id, body=p.body[:120], image_url=p.image_url,
+            id=p.id, body=p.body[:120], image_url=_valid_image_url(p.image_url),
             author_name=profile.display_name if profile else None,
-            author_avatar=profile.avatar_url if profile else None,
+            author_avatar=_valid_image_url(profile.avatar_url) if profile else None,
         ))
 
     sponsors = (
@@ -158,9 +166,10 @@ def platform_config(db: Session = Depends(get_db)):
     sponsorships = [
         SponsorshipBrief(
             id=s.id, title=s.title, sponsor_name=s.sponsor_name,
-            image_url=s.image_url, link_url=s.link_url, placement=s.placement,
+            image_url=_valid_image_url(s.image_url), link_url=s.link_url, placement=s.placement,
         )
         for s in sponsors
+        if _valid_image_url(s.image_url)
     ]
 
     user_count = db.query(func.count(User.id)).scalar() or 0
@@ -172,7 +181,7 @@ def platform_config(db: Session = Depends(get_db)):
     return PlatformConfigOut(
         app_name=config.get("app_name", "ThriveHub"),
         tagline=config.get("tagline", "Skills, Sports & Adventure Community"),
-        hero_image=config.get("hero_image", "https://images.unsplash.com/photo-1517649763962-0c62306601b7?w=1600"),
+        hero_image=_valid_image_url(config.get("hero_image")) or DEFAULT_HERO_IMAGE,
         hero_subtitle=config.get("hero_subtitle"),
         primary_color=config.get("primary_color", "#6366F1"),
         secondary_color=config.get("secondary_color", "#EC4899"),

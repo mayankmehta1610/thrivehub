@@ -3,6 +3,8 @@ import { Calendar, MapPin, Users, Plus } from 'lucide-react'
 import api from '../api/client'
 import Navbar from '../components/Navbar'
 import DataTable from '../components/DataTable'
+import SafeImage from '../components/SafeImage'
+import { isValidImageUrl } from '../utils/images'
 
 export default function Events() {
   const [config, setConfig] = useState(null)
@@ -52,7 +54,9 @@ export default function Events() {
         <div className="grid md:grid-cols-2 gap-4 mb-8">
           {events.map((ev) => (
             <div key={ev.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 card-hover">
-              <img src={ev.image_url} alt="" className="w-full h-40 object-cover" />
+              {isValidImageUrl(ev.image_url) && (
+                <SafeImage src={ev.image_url} alt="" className="w-full h-40 object-cover" hideOnError />
+              )}
               <div className="p-4">
                 <h3 className="font-bold text-lg">{ev.title}</h3>
                 <p className="text-sm text-slate-500 flex items-center gap-1 mt-1">

@@ -199,13 +199,22 @@ body {
   .photo-gallery { grid-template-columns: repeat(3, 1fr); gap: 0.625rem; }
 }
 
+.image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%);
+  min-height: 100%;
+  min-width: 100%;
+}
+
 .photo-gallery-item {
   position: relative;
   aspect-ratio: 1;
   border-radius: 0.5rem;
   overflow: hidden;
   cursor: pointer;
-  background: #e2e8f0;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%);
 }
 .photo-gallery-item img {
   width: 100%;

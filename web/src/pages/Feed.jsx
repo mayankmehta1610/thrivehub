@@ -3,6 +3,8 @@ import { Image, Send } from 'lucide-react'
 import api from '../api/client'
 import Navbar from '../components/Navbar'
 import PostCard from '../components/PostCard'
+import SafeImage from '../components/SafeImage'
+import { isValidImageUrl } from '../utils/images'
 import { getUploadLimits, getFileSizeError } from '../utils/upload'
 
 export default function Feed() {
@@ -74,10 +76,10 @@ export default function Feed() {
     <div className="min-h-screen bg-slate-50">
       <Navbar config={config} />
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-        {sponsors.length > 0 && (
+        {sponsors.length > 0 && isValidImageUrl(sponsors[0].image_url) && (
           <a href={sponsors[0].link_url || '#'} target="_blank" rel="noopener noreferrer"
             className="block rounded-2xl overflow-hidden shadow-sm border border-slate-100">
-            <img src={sponsors[0].image_url} alt={sponsors[0].title} className="w-full h-32 object-cover" />
+            <SafeImage src={sponsors[0].image_url} alt={sponsors[0].title} className="w-full h-32 object-cover" />
             <div className="px-4 py-2 bg-white text-xs text-slate-400">Sponsored · {sponsors[0].sponsor_name}</div>
           </a>
         )}

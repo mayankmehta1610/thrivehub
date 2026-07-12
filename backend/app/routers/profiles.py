@@ -65,7 +65,7 @@ def _profile_out(profile: Profile, db: Session) -> ProfileOut:
         key=lambda s: s.label,
     )
     photos = sorted(
-        [ProfilePhotoOut.model_validate(p) for p in profile.photos],
+        [ProfilePhotoOut.model_validate(p) for p in profile.photos if p.url and p.url.strip()],
         key=lambda p: p.sort_order,
     )
     return ProfileOut(
@@ -177,7 +177,10 @@ def get_profile_photos(username: str, db: Session = Depends(get_db)):
     profile = _load_profile(db, username)
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
-    return sorted([ProfilePhotoOut.model_validate(p) for p in profile.photos], key=lambda p: p.sort_order)
+    return sorted(
+        [ProfilePhotoOut.model_validate(p) for p in profile.photos if p.url and p.url.strip()],
+        key=lambda p: p.sort_order,
+    )
 
 
 @router.post("/me/photos", response_model=ProfilePhotoOut, status_code=201)

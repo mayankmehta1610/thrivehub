@@ -3,6 +3,8 @@ import { useParams } from 'react-router-dom'
 import { Users, UserPlus } from 'lucide-react'
 import api from '../api/client'
 import Navbar from '../components/Navbar'
+import SafeImage from '../components/SafeImage'
+import { isValidImageUrl } from '../utils/images'
 
 export default function CommunityDetail() {
   const { slug } = useParams()
@@ -28,7 +30,11 @@ export default function CommunityDetail() {
     <div className="min-h-screen bg-slate-50">
       <Navbar config={config} />
       <div className="max-w-3xl mx-auto">
-        <img src={community.cover_url} alt="" className="w-full h-56 object-cover" />
+        {isValidImageUrl(community.cover_url) ? (
+          <SafeImage src={community.cover_url} alt="" className="w-full h-56 object-cover" />
+        ) : (
+          <div className="w-full h-56 gradient-hero" />
+        )}
         <div className="px-4 py-6">
           <div className="flex items-center justify-between">
             <div>

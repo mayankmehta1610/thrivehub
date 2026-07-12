@@ -3,6 +3,8 @@ import { Search as SearchIcon } from 'lucide-react'
 import api from '../api/client'
 import Navbar from '../components/Navbar'
 import DataTable from '../components/DataTable'
+import SafeImage from '../components/SafeImage'
+import { isValidImageUrl } from '../utils/images'
 
 export default function SearchPage() {
   const [config, setConfig] = useState(null)
@@ -46,7 +48,9 @@ export default function SearchPage() {
             <div className="grid gap-3 mb-8">
               {results.map((r) => (
                 <div key={`${r.entity_type}-${r.id}`} className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-4 card-hover">
-                  {r.image_url && <img src={r.image_url} alt="" className="w-12 h-12 rounded-xl object-cover" />}
+                  {isValidImageUrl(r.image_url) && (
+                    <SafeImage src={r.image_url} alt="" className="w-12 h-12 rounded-xl object-cover" />
+                  )}
                   <div>
                     <span className="text-xs font-medium text-indigo-500 uppercase">{r.entity_type}</span>
                     <p className="font-medium">{r.title}</p>
