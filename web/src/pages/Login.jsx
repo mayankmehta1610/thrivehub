@@ -16,6 +16,8 @@ function isNetworkFailure(err) {
 export default function Login() {
   const [email, setEmail] = useState('alex@thrivehub.com')
   const [password, setPassword] = useState('demo1234')
+  const [otp, setOtp] = useState('')
+  const [needsOtp, setNeedsOtp] = useState(false)
   const [error, setError] = useState('')
   const [apiReady, setApiReady] = useState(false)
   const [status, setStatus] = useState('waking')
@@ -91,9 +93,22 @@ export default function Login() {
     setStatus('submitting')
     setError('')
     try {
-      await login(email, password)
+      await login(email, password, otp || undefined)
       navigate(redirectTo.startsWith('/') ? redirectTo : '/feed', { replace: true })
     } catch (err) {
+      const detail = err?.message || ''
+      if (detail === 'Two-factor code required') {
+        setNeedsOtp(true)
+        setError('')
+        setStatus('idle')
+        return
+      }
+      if (detail === 'Invalid two-factor code') {
+        setNeedsOtp(true)
+        setError('That code didn’t match. Check your authenticator app and try again.')
+        setStatus('error')
+        return
+      }
       setError(formatAuthError(err))
       setUnreachable(isNetworkFailure(err))
       setStatus('error')
@@ -164,13 +179,30 @@ export default function Login() {
               className="w-full px-4 py-2.5 rounded-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-violet-400 disabled:opacity-60"
             />
           </div>
+          {needsOtp && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Authentication code</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={otp}
+                autoFocus
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                placeholder="6-digit code"
+                className="w-full px-4 py-2.5 rounded-md border border-slate-300 tracking-[0.4em] text-center text-lg focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-violet-400"
+              />
+              <p className="text-xs text-slate-400 mt-1">Enter the code from your authenticator app.</p>
+            </div>
+          )}
           <button
             type="submit"
-            disabled={busy || !apiReady}
+            disabled={busy || !apiReady || (needsOtp && otp.length < 6)}
             className="w-full py-3 rounded-md bg-rose-500 hover:bg-rose-600 text-white font-semibold disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
           >
             {status === 'submitting' && <Loader2 className="w-4 h-4 animate-spin" />}
-            {status === 'submitting' ? 'Signing in...' : apiReady ? 'Sign In' : 'Connecting to server...'}
+            {status === 'submitting' ? 'Signing in...' : !apiReady ? 'Connecting to server...' : needsOtp ? 'Verify code' : 'Sign In'}
           </button>
         </form>
 

@@ -229,11 +229,28 @@ class ApiClient {
   }
 
   // Auth — always wake API before auth requests
-  async login(email, password) {
+  async login(email, password, otp) {
     this.clearTokens()
     const awake = await wakeApi()
     if (!awake) throw new NetworkError()
-    return this.post('/auth/login', { email, password })
+    return this.post('/auth/login', { email, password, otp: otp || undefined })
+  }
+
+  // Two-factor auth
+  get2faStatus() {
+    return this.get('/auth/2fa/status')
+  }
+
+  setup2fa() {
+    return this.post('/auth/2fa/setup')
+  }
+
+  enable2fa(code) {
+    return this.post('/auth/2fa/enable', { code })
+  }
+
+  disable2fa(code) {
+    return this.post('/auth/2fa/disable', { code })
   }
 
   async register(data) {

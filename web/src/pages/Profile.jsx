@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
   MapPin, Globe, UserPlus, UserMinus, Ban, VolumeX, Flag, Edit,
-  BadgeCheck, Camera, X, Users, FileText, MessageCircle,
+  BadgeCheck, Camera, X, Users, FileText, MessageCircle, ShieldCheck,
 } from 'lucide-react'
 import api from '../api/client'
 import Navbar from '../components/Navbar'
@@ -75,6 +75,7 @@ export default function Profile() {
   const [connections, setConnections] = useState([])
   const [connBusy, setConnBusy] = useState('')
   const [uploadingField, setUploadingField] = useState('')
+  const [twoFA, setTwoFA] = useState({ enabled: false, setup: null, code: '', busy: false, disabling: false })
   const [postsLoading, setPostsLoading] = useState(true)
   const [uploadError, setUploadError] = useState('')
   const avatarFileRef = useRef(null)
@@ -195,6 +196,43 @@ export default function Profile() {
     if (!requireAuth(AUTH_MESSAGES.editProfile)) return
     setEditing(true)
     api.getSocialConnections().then(setConnections).catch(() => setConnections([]))
+    setTwoFA({ enabled: false, setup: null, code: '', busy: false, disabling: false })
+    api.get2faStatus().then((s) => setTwoFA((t) => ({ ...t, enabled: s.enabled }))).catch(() => {})
+  }
+
+  const startEnable2fa = async () => {
+    setTwoFA((t) => ({ ...t, busy: true }))
+    try {
+      const s = await api.setup2fa()
+      setTwoFA((t) => ({ ...t, setup: s, code: '', busy: false, disabling: false }))
+    } catch (err) {
+      toast.error(err?.message || 'Could not start setup')
+      setTwoFA((t) => ({ ...t, busy: false }))
+    }
+  }
+
+  const confirmEnable2fa = async () => {
+    setTwoFA((t) => ({ ...t, busy: true }))
+    try {
+      await api.enable2fa(twoFA.code)
+      setTwoFA({ enabled: true, setup: null, code: '', busy: false, disabling: false })
+      toast.success('Two-factor authentication enabled 🔒')
+    } catch (err) {
+      toast.error(err?.message || 'Invalid code')
+      setTwoFA((t) => ({ ...t, busy: false }))
+    }
+  }
+
+  const disable2fa = async () => {
+    setTwoFA((t) => ({ ...t, busy: true }))
+    try {
+      await api.disable2fa(twoFA.code)
+      setTwoFA({ enabled: false, setup: null, code: '', busy: false, disabling: false })
+      toast.success('Two-factor authentication disabled')
+    } catch (err) {
+      toast.error(err?.message || 'Invalid code')
+      setTwoFA((t) => ({ ...t, busy: false }))
+    }
   }
 
   const refreshConnections = async () => setConnections(await api.getSocialConnections())
@@ -606,6 +644,52 @@ export default function Profile() {
                     )
                   })}
                 </div>
+              </div>
+
+              {/* Security — two-factor authentication */}
+              <div className="pt-3 border-t border-slate-100">
+                <h4 className="text-sm font-semibold text-slate-800 mb-1 flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-violet-600" /> Two-factor authentication
+                </h4>
+                {twoFA.enabled ? (
+                  <>
+                    <p className="text-xs text-emerald-600 mb-2">On — you'll enter a code from your authenticator app when you sign in.</p>
+                    {twoFA.disabling ? (
+                      <div className="flex gap-2">
+                        <input value={twoFA.code} maxLength={6} inputMode="numeric"
+                          onChange={(e) => setTwoFA((t) => ({ ...t, code: e.target.value.replace(/\D/g, '') }))}
+                          placeholder="6-digit code"
+                          className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 text-sm text-center tracking-widest" />
+                        <button type="button" disabled={twoFA.busy || twoFA.code.length < 6} onClick={disable2fa}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50">Confirm disable</button>
+                      </div>
+                    ) : (
+                      <button type="button" onClick={() => setTwoFA((t) => ({ ...t, disabling: true, code: '' }))}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 text-slate-600 hover:bg-slate-50">Disable 2FA</button>
+                    )}
+                  </>
+                ) : twoFA.setup ? (
+                  <div>
+                    <p className="text-xs text-slate-500 mb-2">Add this key to an authenticator app (Google Authenticator, Authy…), then enter the 6-digit code to confirm.</p>
+                    <div className="font-mono text-sm bg-slate-50 border border-slate-200 rounded-lg p-2 break-all select-all mb-2">{twoFA.setup.secret}</div>
+                    <div className="flex gap-2">
+                      <input value={twoFA.code} maxLength={6} autoFocus inputMode="numeric"
+                        onChange={(e) => setTwoFA((t) => ({ ...t, code: e.target.value.replace(/\D/g, '') }))}
+                        placeholder="6-digit code"
+                        className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 text-sm text-center tracking-widest" />
+                      <button type="button" disabled={twoFA.busy || twoFA.code.length < 6} onClick={confirmEnable2fa}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50">Confirm</button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-slate-400 mb-2">Add a second step at sign-in for stronger account security.</p>
+                    <button type="button" disabled={twoFA.busy} onClick={startEnable2fa}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium border border-violet-200 text-violet-600 hover:bg-violet-50 disabled:opacity-50">
+                      {twoFA.busy ? 'Setting up…' : 'Enable two-factor'}
+                    </button>
+                  </>
+                )}
               </div>
 
               {/* Your data (privacy) */}

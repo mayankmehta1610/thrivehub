@@ -22,10 +22,24 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+    otp: str | None = None  # two-factor code, required when 2FA is enabled
 
 
 class RefreshRequest(BaseModel):
     refresh_token: str
+
+
+class TwoFactorSetupOut(BaseModel):
+    secret: str
+    otpauth_uri: str
+
+
+class TwoFactorVerify(BaseModel):
+    code: str
+
+
+class TwoFactorStatus(BaseModel):
+    enabled: bool
 
 
 class ProfileBase(BaseModel):

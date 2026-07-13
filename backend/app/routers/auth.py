@@ -5,7 +5,17 @@ from app.config import settings
 from app.database import get_db
 from app.deps import get_current_user
 from app.models import Profile, Tenant, User, UserSkill, UserStatus
-from app.schemas import LoginRequest, RefreshRequest, RegisterRequest, TokenResponse, UserOut
+from app.schemas import (
+    LoginRequest,
+    RefreshRequest,
+    RegisterRequest,
+    TokenResponse,
+    TwoFactorSetupOut,
+    TwoFactorStatus,
+    TwoFactorVerify,
+    UserOut,
+)
+from app.utils import totp
 from app.utils.security import (
     create_access_token,
     create_refresh_token,
@@ -75,6 +85,11 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     )
     if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Wrong email or password")
+    if user.totp_enabled:
+        if not payload.otp:
+            raise HTTPException(status_code=401, detail="Two-factor code required")
+        if not totp.verify(user.totp_secret, payload.otp):
+            raise HTTPException(status_code=401, detail="Invalid two-factor code")
     return TokenResponse(
         access_token=create_access_token(user.id),
         refresh_token=create_refresh_token(user.id),
@@ -96,3 +111,43 @@ def refresh(payload: RefreshRequest):
 @router.get("/me", response_model=UserOut)
 def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return _user_out(user, db)
+
+
+# --- Two-factor authentication (TOTP) ---
+
+@router.get("/2fa/status", response_model=TwoFactorStatus)
+def two_factor_status(user: User = Depends(get_current_user)):
+    return TwoFactorStatus(enabled=bool(user.totp_enabled))
+
+
+@router.post("/2fa/setup", response_model=TwoFactorSetupOut)
+def two_factor_setup(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if user.totp_enabled:
+        raise HTTPException(status_code=400, detail="Two-factor is already enabled")
+    secret = totp.generate_secret()
+    user.totp_secret = secret
+    db.commit()
+    return TwoFactorSetupOut(secret=secret, otpauth_uri=totp.provisioning_uri(secret, user.email))
+
+
+@router.post("/2fa/enable", response_model=TwoFactorStatus)
+def two_factor_enable(payload: TwoFactorVerify, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not user.totp_secret:
+        raise HTTPException(status_code=400, detail="Start setup first")
+    if not totp.verify(user.totp_secret, payload.code):
+        raise HTTPException(status_code=400, detail="Invalid code — check your authenticator app")
+    user.totp_enabled = True
+    db.commit()
+    return TwoFactorStatus(enabled=True)
+
+
+@router.post("/2fa/disable", response_model=TwoFactorStatus)
+def two_factor_disable(payload: TwoFactorVerify, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not user.totp_enabled:
+        return TwoFactorStatus(enabled=False)
+    if not totp.verify(user.totp_secret or "", payload.code):
+        raise HTTPException(status_code=400, detail="Invalid code")
+    user.totp_enabled = False
+    user.totp_secret = None
+    db.commit()
+    return TwoFactorStatus(enabled=False)

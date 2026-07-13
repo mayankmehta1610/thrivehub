@@ -73,6 +73,10 @@ def _migrate_sqlite_columns() -> None:
             ("refresh_token", "TEXT"),
             ("token_expires_at", "DATETIME"),
         ],
+        "users": [
+            ("totp_secret", "VARCHAR(64)"),
+            ("totp_enabled", "BOOLEAN DEFAULT 0"),
+        ],
     }
     with engine.begin() as conn:
         for table, columns in migrations.items():
@@ -91,6 +95,8 @@ def _migrate_postgres_columns() -> None:
         ('ALTER TABLE social_connections ADD COLUMN IF NOT EXISTS access_token TEXT'),
         ('ALTER TABLE social_connections ADD COLUMN IF NOT EXISTS refresh_token TEXT'),
         ('ALTER TABLE social_connections ADD COLUMN IF NOT EXISTS token_expires_at TIMESTAMPTZ'),
+        ('ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret VARCHAR(64)'),
+        ('ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN DEFAULT FALSE'),
     ]
     with engine.begin() as conn:
         for stmt in migrations:
