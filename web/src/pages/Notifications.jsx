@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Bell, CheckCheck, Link2, Check, X } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Bell, CheckCheck, Link2, Check, X, ChevronRight } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '../api/client'
 import Navbar from '../components/Navbar'
@@ -8,6 +8,7 @@ import DataTable from '../components/DataTable'
 import SafeImage from '../components/SafeImage'
 
 export default function Notifications() {
+  const navigate = useNavigate()
   const [config, setConfig] = useState(null)
   const [items, setItems] = useState([])
   const [total, setTotal] = useState(0)
@@ -34,6 +35,12 @@ export default function Notifications() {
   const markAllRead = async () => {
     await api.markAllNotificationsRead()
     load()
+  }
+
+  const openNotification = (n) => {
+    if (!n?.link) return
+    if (!n.read_at) api.markNotificationRead(n.id).catch(() => {})
+    navigate(n.link)
   }
 
   const respond = async (userId, accept) => {
@@ -97,12 +104,20 @@ export default function Notifications() {
 
         <div className="space-y-2 mb-8">
           {items.map((n) => (
-            <div key={n.id} className={`bg-white rounded-xl p-4 border ${n.read_at ? 'border-slate-100' : 'border-violet-200 bg-violet-50/30'}`}>
-              <p className="font-medium">{n.title}</p>
-              <p className="text-sm text-slate-500">{n.body}</p>
-              <p className="text-xs text-slate-400 mt-1">{new Date(n.created_at).toLocaleString()}</p>
+            <div
+              key={n.id}
+              onClick={() => openNotification(n)}
+              className={`bg-white rounded-xl p-4 border flex items-center gap-3 ${n.read_at ? 'border-slate-100' : 'border-violet-200 bg-violet-50/30'} ${n.link ? 'cursor-pointer hover:border-violet-300 hover:bg-violet-50/50' : ''}`}
+            >
+              <div className="flex-1 min-w-0">
+                <p className="font-medium">{n.title}</p>
+                <p className="text-sm text-slate-500">{n.body}</p>
+                <p className="text-xs text-slate-400 mt-1">{new Date(n.created_at).toLocaleString()}</p>
+              </div>
+              {n.link && <ChevronRight className="w-5 h-5 text-slate-300 shrink-0" />}
             </div>
           ))}
+          {items.length === 0 && <p className="text-slate-400 text-sm">No notifications yet.</p>}
         </div>
 
         <DataTable
@@ -119,6 +134,7 @@ export default function Notifications() {
           pageSize={20}
           onPageChange={setPage}
           onSearchChange={(s) => { setSearch(s); setPage(1) }}
+          onRowClick={(row) => openNotification(row)}
         />
       </div>
     </div>

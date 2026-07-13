@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Query
@@ -10,6 +11,16 @@ from app.schemas import NotificationOut
 from app.utils.pagination import PaginationParams, apply_pagination, paginated
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
+
+
+def _notif_out(n: Notification) -> NotificationOut:
+    out = NotificationOut.model_validate(n)
+    if n.payload_json:
+        try:
+            out.link = json.loads(n.payload_json).get("link")
+        except (json.JSONDecodeError, TypeError):
+            pass
+    return out
 
 
 @router.get("", response_model=dict)
@@ -27,7 +38,7 @@ def list_notifications(
     items, total, total_pages = apply_pagination(
         query, params, default_sort="created_at", sort_map={"created_at": Notification.created_at}
     )
-    return paginated([NotificationOut.model_validate(n) for n in items], total, params, total_pages)
+    return paginated([_notif_out(n) for n in items], total, params, total_pages)
 
 
 @router.patch("/{notification_id}/read", response_model=NotificationOut)

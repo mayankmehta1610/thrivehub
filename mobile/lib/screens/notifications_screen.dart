@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../theme.dart';
+import 'event_detail_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -48,6 +49,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       await context.read<AuthProvider>().api.markNotificationRead(id);
       await _load();
     } catch (_) {}
+  }
+
+  void _open(Map<String, dynamic> n) {
+    if (n['read_at'] == null) _markRead(n['id']);
+    final link = n['link'] as String?;
+    if (link != null && link.startsWith('/events/')) {
+      Navigator.push(context, MaterialPageRoute(
+        builder: (_) => EventDetailScreen(eventId: link.substring('/events/'.length)),
+      ));
+    }
   }
 
   Future<void> _markAllRead() async {
@@ -127,10 +138,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           leading: Icon(Icons.notifications, color: unread ? AppColors.primary : Colors.grey),
                           title: Text(n['title'] ?? '', style: TextStyle(fontWeight: unread ? FontWeight.bold : FontWeight.normal)),
                           subtitle: Text(n['body'] ?? ''),
-                          trailing: unread
-                              ? const Icon(Icons.circle, size: 10, color: AppColors.accent)
-                              : null,
-                          onTap: unread ? () => _markRead(n['id']) : null,
+                          trailing: (n['link'] != null)
+                              ? const Icon(Icons.chevron_right, color: Colors.grey)
+                              : (unread ? const Icon(Icons.circle, size: 10, color: AppColors.accent) : null),
+                          onTap: () => _open(Map<String, dynamic>.from(n)),
                         ),
                       );
                     },

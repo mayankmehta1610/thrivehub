@@ -1,3 +1,5 @@
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 
@@ -186,6 +188,7 @@ def send_message(
             type=NotificationType.message,
             title="New message",
             body=f"{sender_name}: {payload.body[:80]}",
+            payload_json=json.dumps({"link": "/messages"}),
         )
         db.add(notif)
         send_push_to_user(db, p.user_id, "New message", f"{sender_name}: {payload.body[:80]}")

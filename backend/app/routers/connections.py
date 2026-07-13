@@ -1,4 +1,6 @@
 """Connection requests — mutual connections (request/accept), distinct from one-way follow."""
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
@@ -78,9 +80,11 @@ def send_request(username: str, user: User = Depends(get_current_user), db: Sess
         return {"status": "pending_outgoing"}
     db.add(Connection(tenant_id=user.tenant_id, requester_id=user.id, addressee_id=target.id, status="pending"))
     sender = user.profile.display_name if user.profile else "Someone"
+    sender_username = user.profile.username if user.profile else ""
     db.add(Notification(
         tenant_id=user.tenant_id, user_id=target.id, type=NotificationType.follow,
         title="New connection request", body=f"{sender} wants to connect with you",
+        payload_json=json.dumps({"link": f"/profile/{sender_username}"}),
     ))
     db.commit()
     return {"status": "pending_outgoing"}
@@ -109,9 +113,11 @@ def accept_request(user_id: str, user: User = Depends(get_current_user), db: Ses
         raise HTTPException(status_code=404, detail="No pending request from this user")
     conn.status = "accepted"
     accepter = user.profile.display_name if user.profile else "Someone"
+    accepter_username = user.profile.username if user.profile else ""
     db.add(Notification(
         tenant_id=user.tenant_id, user_id=user_id, type=NotificationType.follow,
         title="Connection accepted", body=f"{accepter} accepted your connection request",
+        payload_json=json.dumps({"link": f"/profile/{accepter_username}"}),
     ))
     db.commit()
     return {"status": "connected"}

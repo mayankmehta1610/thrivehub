@@ -1272,14 +1272,39 @@ def seed_demo_content(db: Session, tenant: Tenant, users: list[User], master_map
         db.add(Message(conversation_id=conv.id, sender_id=alex.id, body="Hey Sam! Are you joining the trail run next week?"))
         db.add(Message(conversation_id=conv.id, sender_id=sam.id, body="Absolutely! Count me in. What time should we meet?"))
 
-    # Notifications
+    # Notifications (with navigation links)
     if alex and not db.query(Notification).filter(Notification.user_id == alex.id).first():
+        jordan = by_email.get("jordan@thrivehub.com")
+        alex_post = db.query(Post).filter(Post.author_id == alex.id).order_by(Post.created_at.desc()).first()
+        trail_event = db.query(Event).filter(Event.tenant_id == tenant.id, Event.title == "Weekend Trail Run").first()
+
+        def _link(d):
+            return json.dumps({"link": d}) if d else None
+
         db.add(Notification(tenant_id=tenant.id, user_id=alex.id, type=NotificationType.like,
-                            title="New like", body="Sam Chen liked your post"))
+                            title="New like", body="Sam Chen liked your post",
+                            payload_json=_link(f"/posts/{alex_post.id}" if alex_post else "/feed")))
         db.add(Notification(tenant_id=tenant.id, user_id=alex.id, type=NotificationType.follow,
-                            title="New follower", body="Jordan Lee started following you"))
+                            title="New follower", body="Jordan Lee started following you",
+                            payload_json=_link(f"/profile/{jordan.profile.username}" if jordan and jordan.profile else None)))
         db.add(Notification(tenant_id=tenant.id, user_id=alex.id, type=NotificationType.event,
-                            title="Event reminder", body="Weekend Trail Run is coming up in 7 days"))
+                            title="Event reminder", body="Weekend Trail Run is coming up in 7 days",
+                            payload_json=_link(f"/events/{trail_event.id}" if trail_event else "/events")))
+
+    # Backfill navigation links on existing seeded notifications (idempotent).
+    if alex:
+        jordan = by_email.get("jordan@thrivehub.com")
+        alex_post = db.query(Post).filter(Post.author_id == alex.id).order_by(Post.created_at.desc()).first()
+        trail_event = db.query(Event).filter(Event.tenant_id == tenant.id, Event.title == "Weekend Trail Run").first()
+        backfill = {
+            "New like": f"/posts/{alex_post.id}" if alex_post else "/feed",
+            "New follower": f"/profile/{jordan.profile.username}" if jordan and jordan.profile else None,
+            "Event reminder": f"/events/{trail_event.id}" if trail_event else "/events",
+        }
+        for n in db.query(Notification).filter(Notification.user_id == alex.id, Notification.payload_json.is_(None)).all():
+            dest = backfill.get(n.title)
+            if dest:
+                n.payload_json = json.dumps({"link": dest})
 
 
 def seed_ananya_social(db: Session, tenant: Tenant, by_email: dict[str, User]) -> None:
