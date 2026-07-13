@@ -14,11 +14,24 @@ class _SearchScreenState extends State<SearchScreen> {
   final _controller = TextEditingController();
   List<dynamic> _results = [];
   bool _searched = false;
+  final Set<String> _requested = {};
 
   Future<void> _search() async {
     if (_controller.text.trim().isEmpty) return;
     final data = await context.read<AuthProvider>().api.search(_controller.text);
     setState(() { _results = data['items'] ?? []; _searched = true; });
+  }
+
+  Future<void> _connect(String username) async {
+    setState(() => _requested.add(username));
+    try {
+      await context.read<AuthProvider>().api.requestConnection(username);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Connection request sent')));
+      }
+    } catch (e) {
+      if (mounted) setState(() => _requested.remove(username));
+    }
   }
 
   @override
@@ -52,6 +65,9 @@ class _SearchScreenState extends State<SearchScreen> {
                   itemBuilder: (_, i) {
                     final r = _results[i];
                     final isEvent = r['entity_type'] == 'event';
+                    final isProfile = r['entity_type'] == 'profile';
+                    final username = (r['subtitle'] ?? '').toString().replaceFirst('@', '');
+                    final requested = _requested.contains(username);
                     return ListTile(
                       leading: CircleAvatar(
                         backgroundColor: AppColors.primary.withValues(alpha: 0.12),
@@ -60,7 +76,15 @@ class _SearchScreenState extends State<SearchScreen> {
                       ),
                       title: Text(r['title'] ?? ''),
                       subtitle: Text('${r['entity_type']} · ${r['subtitle'] ?? ''}'),
-                      trailing: isEvent ? const Icon(Icons.chevron_right) : null,
+                      trailing: isEvent
+                          ? const Icon(Icons.chevron_right)
+                          : isProfile
+                              ? OutlinedButton.icon(
+                                  onPressed: requested ? null : () => _connect(username),
+                                  icon: Icon(requested ? Icons.check : Icons.person_add_alt, size: 16),
+                                  label: Text(requested ? 'Sent' : 'Connect'),
+                                )
+                              : null,
                       onTap: isEvent
                           ? () => Navigator.push(
                                 context,

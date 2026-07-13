@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
   MapPin, Globe, UserPlus, UserMinus, Ban, VolumeX, Flag, Edit,
-  BadgeCheck, Camera, X, Users, FileText, MessageCircle, ShieldCheck,
+  BadgeCheck, Camera, X, Users, FileText, MessageCircle, ShieldCheck, Link2, Clock, Check,
 } from 'lucide-react'
 import api from '../api/client'
 import Navbar from '../components/Navbar'
@@ -65,6 +65,7 @@ export default function Profile() {
   const [profile, setProfile] = useState(null)
   const [posts, setPosts] = useState([])
   const [following, setFollowing] = useState(false)
+  const [connStatus, setConnStatus] = useState('none')
   const [blocked, setBlocked] = useState(false)
   const [muted, setMuted] = useState(false)
   const [editing, setEditing] = useState(false)
@@ -127,6 +128,43 @@ export default function Profile() {
   }, [])
 
   const isOwn = currentUser?.profile?.username === username
+
+  useEffect(() => {
+    if (currentUser && currentUser.profile?.username !== username) {
+      api.getConnectionStatus(username).then((s) => setConnStatus(s.status)).catch(() => setConnStatus('none'))
+    } else {
+      setConnStatus('self')
+    }
+  }, [username, currentUser])
+
+  const handleConnect = async () => {
+    if (!requireAuth(AUTH_MESSAGES.follow)) return
+    if (!profile?.user_id) return
+    try {
+      if (connStatus === 'connected' || connStatus === 'pending_outgoing') {
+        await api.removeConnection(profile.user_id)
+        setConnStatus('none')
+        toast.success(connStatus === 'connected' ? 'Connection removed' : 'Request cancelled')
+      } else if (connStatus === 'pending_incoming') {
+        await api.acceptConnection(profile.user_id)
+        setConnStatus('connected')
+        toast.success('Connected 🤝')
+      } else {
+        const res = await api.requestConnection(username)
+        setConnStatus(res?.status === 'connected' ? 'connected' : 'pending_outgoing')
+        toast.success(res?.status === 'connected' ? 'Connected 🤝' : 'Connection request sent')
+      }
+    } catch (err) {
+      toast.error(err?.message || 'Something went wrong')
+    }
+  }
+
+  const connectMeta = {
+    none: { Icon: Link2, cls: 'bg-white text-violet-600 border-violet-200 hover:bg-violet-50', title: 'Connect' },
+    pending_outgoing: { Icon: Clock, cls: 'bg-amber-50 text-amber-600 border-amber-200', title: 'Request sent — tap to cancel' },
+    pending_incoming: { Icon: Check, cls: 'bg-violet-600 text-white border-violet-600', title: 'Accept connection request' },
+    connected: { Icon: Check, cls: 'bg-emerald-50 text-emerald-600 border-emerald-200', title: 'Connected — tap to remove' },
+  }
   const coverUrl = profile?.cover_url || config?.hero_image
   const avatarUrl = profile?.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200'
 
@@ -400,6 +438,16 @@ export default function Profile() {
                         ? <><UserMinus className="w-4 h-4" /> Unfollow</>
                         : <><UserPlus className="w-4 h-4" /> Follow</>}
                     </button>
+                    {(() => {
+                      const meta = connectMeta[connStatus] || connectMeta.none
+                      const Icon = meta.Icon
+                      return (
+                        <button onClick={handleConnect} title={meta.title}
+                          className={`p-2 rounded-lg border ${meta.cls}`}>
+                          <Icon className="w-4 h-4" />
+                        </button>
+                      )
+                    })()}
                     <button onClick={handleMessage} title="Message"
                       className="p-2 rounded-lg border bg-white text-slate-500 border-slate-200 hover:bg-slate-50">
                       <MessageCircle className="w-4 h-4" />

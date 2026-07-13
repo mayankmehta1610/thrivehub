@@ -206,6 +206,22 @@ class ApiService {
   Future<Map<String, dynamic>> enable2fa(String code) => _postMap('/auth/2fa/enable', {'code': code});
   Future<Map<String, dynamic>> disable2fa(String code) => _postMap('/auth/2fa/disable', {'code': code});
 
+  // Connections (mutual request/accept)
+  Future<void> requestConnection(String username) => post('/connections/request/$username', {});
+  Future<List<dynamic>> getConnectionRequests() async => (await get('/connections/requests')) as List<dynamic>;
+  Future<void> acceptConnection(String userId) => post('/connections/accept/$userId', {});
+  Future<void> removeConnection(String userId) async {
+    http.Response res;
+    try {
+      res = await _fetchWithRetry(() => http.delete(Uri.parse('$baseUrl/connections/$userId'), headers: _headers));
+    } catch (e) {
+      if (_isNetworkError(e)) throw NetworkException();
+      rethrow;
+    }
+    if (res.statusCode == 401) { await _refreshAndRetry(() => removeConnection(userId)); return; }
+    _throwForResponse(res);
+  }
+
   // Group conversation + data privacy
   Future<Map<String, dynamic>> createGroupConversation(String title, List<String> ids) =>
       _postMap('/messages/conversations', {'type': 'group', 'title': title, 'participant_ids': ids});

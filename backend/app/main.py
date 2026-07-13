@@ -11,6 +11,7 @@ from app.routers import (
     analytics,
     auth,
     communities,
+    connections,
     events,
     media,
     messages,
@@ -58,6 +59,7 @@ app.include_router(social.router, prefix=api)
 app.include_router(analytics.router, prefix=api)
 app.include_router(support.router, prefix=api)
 app.include_router(privacy.router, prefix=api)
+app.include_router(connections.router, prefix=api)
 app.include_router(ai_moderation.router, prefix=api)
 app.include_router(media.router, prefix=api)
 app.include_router(push.router, prefix=api)

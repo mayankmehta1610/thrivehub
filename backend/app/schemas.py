@@ -209,6 +209,16 @@ class AuthorBrief(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ConnectionRequestOut(BaseModel):
+    user: AuthorBrief | None = None
+    created_at: datetime
+
+
+class ConnectionStatusOut(BaseModel):
+    status: str  # none | pending_outgoing | pending_incoming | connected
+    connection_count: int = 0
+
+
 class FeedbackCreate(BaseModel):
     category: str = "general"
     message: str = Field(min_length=1, max_length=4000)

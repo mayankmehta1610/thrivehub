@@ -359,6 +359,27 @@ class ApiClient {
     return this.post(`/profiles/${username}/follow`)
   }
 
+  // Connections (mutual request/accept)
+  getConnectionStatus(username) {
+    return this.get(`/connections/status/${username}`)
+  }
+
+  requestConnection(username) {
+    return this.post(`/connections/request/${username}`)
+  }
+
+  getConnectionRequests() {
+    return this.get('/connections/requests')
+  }
+
+  acceptConnection(userId) {
+    return this.post(`/connections/accept/${userId}`)
+  }
+
+  removeConnection(userId) {
+    return this.delete(`/connections/${userId}`)
+  }
+
   unfollowUser(username) {
     return this.delete(`/profiles/${username}/follow`)
   }

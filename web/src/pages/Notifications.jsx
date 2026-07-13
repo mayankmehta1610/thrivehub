@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Bell, CheckCheck } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Bell, CheckCheck, Link2, Check, X } from 'lucide-react'
+import toast from 'react-hot-toast'
 import api from '../api/client'
 import Navbar from '../components/Navbar'
 import DataTable from '../components/DataTable'
+import SafeImage from '../components/SafeImage'
 
 export default function Notifications() {
   const [config, setConfig] = useState(null)
@@ -10,6 +13,7 @@ export default function Notifications() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
+  const [requests, setRequests] = useState([])
 
   const load = useCallback(async () => {
     const data = await api.getNotifications({ page, page_size: 20, search })
@@ -17,14 +21,34 @@ export default function Notifications() {
     setTotal(data.total)
   }, [page, search])
 
+  const loadRequests = useCallback(() => {
+    api.getConnectionRequests().then(setRequests).catch(() => setRequests([]))
+  }, [])
+
   useEffect(() => {
     api.getConfig().then(setConfig)
     load()
-  }, [load])
+    loadRequests()
+  }, [load, loadRequests])
 
   const markAllRead = async () => {
     await api.markAllNotificationsRead()
     load()
+  }
+
+  const respond = async (userId, accept) => {
+    try {
+      if (accept) {
+        await api.acceptConnection(userId)
+        toast.success('Connected 🤝')
+      } else {
+        await api.removeConnection(userId)
+        toast.success('Request declined')
+      }
+      loadRequests()
+    } catch (err) {
+      toast.error(err?.message || 'Something went wrong')
+    }
   }
 
   return (
@@ -39,6 +63,37 @@ export default function Notifications() {
             <CheckCheck className="w-4 h-4" /> Mark all read
           </button>
         </div>
+
+        {requests.length > 0 && (
+          <div className="bg-white rounded-2xl border border-violet-200 shadow-sm p-4 mb-6">
+            <h2 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-1.5">
+              <Link2 className="w-4 h-4 text-violet-600" /> Connection requests ({requests.length})
+            </h2>
+            <div className="space-y-2">
+              {requests.map((r) => (
+                <div key={r.user?.id} className="flex items-center gap-3">
+                  <Link to={`/profile/${r.user?.username}`}>
+                    <SafeImage src={r.user?.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover bg-slate-100" />
+                  </Link>
+                  <div className="flex-1 min-w-0">
+                    <Link to={`/profile/${r.user?.username}`} className="font-medium text-slate-800 hover:text-violet-600 truncate block">
+                      {r.user?.display_name}
+                    </Link>
+                    <p className="text-xs text-slate-400">wants to connect</p>
+                  </div>
+                  <button onClick={() => respond(r.user?.id, true)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-xs font-medium hover:bg-violet-700">
+                    <Check className="w-3.5 h-3.5" /> Accept
+                  </button>
+                  <button onClick={() => respond(r.user?.id, false)} title="Decline"
+                    className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="space-y-2 mb-8">
           {items.map((n) => (

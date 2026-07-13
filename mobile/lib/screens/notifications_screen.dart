@@ -11,6 +11,7 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   List<dynamic> _items = [];
+  List<dynamic> _requests = [];
   bool _loading = true;
 
   @override
@@ -19,11 +20,27 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final data = await context.read<AuthProvider>().api.getNotifications();
-      if (mounted) setState(() => _items = data['items'] ?? []);
+      final api = context.read<AuthProvider>().api;
+      final data = await api.getNotifications();
+      List<dynamic> reqs = [];
+      try { reqs = await api.getConnectionRequests(); } catch (_) {}
+      if (mounted) setState(() { _items = data['items'] ?? []; _requests = reqs; });
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _respond(String userId, bool accept) async {
+    final api = context.read<AuthProvider>().api;
+    try {
+      if (accept) { await api.acceptConnection(userId); } else { await api.removeConnection(userId); }
+      await _load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(accept ? 'Connected 🤝' : 'Request declined')),
+        );
+      }
+    } catch (_) {}
   }
 
   Future<void> _markRead(String id) async {
@@ -48,6 +65,39 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       onRefresh: _load,
       child: Column(
         children: [
+          if (_requests.isNotEmpty)
+            Card(
+              margin: const EdgeInsets.all(12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFFDDD6FE))),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Connection requests (${_requests.length})',
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                    const SizedBox(height: 4),
+                    ..._requests.map((r) {
+                      final u = r['user'] ?? {};
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const CircleAvatar(child: Icon(Icons.person)),
+                        title: Text(u['display_name'] ?? ''),
+                        subtitle: const Text('wants to connect'),
+                        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                          ElevatedButton(
+                            onPressed: () => _respond(u['id'], true),
+                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white, visualDensity: VisualDensity.compact),
+                            child: const Text('Accept'),
+                          ),
+                          IconButton(onPressed: () => _respond(u['id'], false), icon: const Icon(Icons.close, size: 20, color: Colors.grey)),
+                        ]),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ),
           if (hasUnread)
             Align(
               alignment: Alignment.centerRight,
