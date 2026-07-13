@@ -8,6 +8,7 @@ from app.config import settings
 from app.routers import (
     admin,
     ai_moderation,
+    analytics,
     auth,
     communities,
     events,
@@ -21,6 +22,7 @@ from app.routers import (
     push,
     social,
     subscriptions,
+    support,
     trust,
     websocket,
 )
@@ -52,6 +54,8 @@ app.include_router(trust.router, prefix=api)
 app.include_router(moderation.router, prefix=api)
 app.include_router(subscriptions.router, prefix=api)
 app.include_router(social.router, prefix=api)
+app.include_router(analytics.router, prefix=api)
+app.include_router(support.router, prefix=api)
 app.include_router(ai_moderation.router, prefix=api)
 app.include_router(media.router, prefix=api)
 app.include_router(push.router, prefix=api)

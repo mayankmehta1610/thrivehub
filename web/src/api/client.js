@@ -438,6 +438,23 @@ class ApiClient {
     return this.get('/masters', { master_type: type, ...params })
   }
 
+  // Analytics & Support
+  getAnalytics() {
+    return this.get('/admin/analytics')
+  }
+
+  getHelp() {
+    return this.get('/support/help')
+  }
+
+  submitFeedback(data) {
+    return this.post('/support/feedback', data)
+  }
+
+  getAdminFeedback(params) {
+    return this.get('/admin/feedback', params)
+  }
+
   // Admin
   getAdminMasters(params) {
     return this.get('/admin/masters', params)

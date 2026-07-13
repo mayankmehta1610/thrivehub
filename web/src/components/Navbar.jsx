@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Bell, Home, LogOut, MessageCircle, Search, Users, Calendar, Settings } from 'lucide-react'
+import { Bell, Home, LogOut, MessageCircle, Search, Users, Calendar, Settings, HelpCircle } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import SafeImage from './SafeImage'
 
@@ -57,6 +57,9 @@ export default function Navbar({ config, dark = false }) {
         <div className="flex items-center gap-3">
           {user ? (
             <>
+              <Link to="/help" title="Help & Support" className="p-2 rounded-md text-slate-500 hover:bg-slate-50">
+                <HelpCircle className="w-5 h-5" />
+              </Link>
               {user.role === 'admin' && (
                 <Link to="/admin" className="p-2 rounded-md text-slate-500 hover:bg-slate-50">
                   <Settings className="w-5 h-5" />

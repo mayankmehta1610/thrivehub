@@ -19,6 +19,7 @@ import Messages from './pages/Messages'
 import Notifications from './pages/Notifications'
 import SearchPage from './pages/SearchPage'
 import Admin from './pages/Admin'
+import Help from './pages/Help'
 
 function AppWake() {
   useEffect(() => {
@@ -54,6 +55,7 @@ function AppRoutes() {
       <Route path="/notifications" element={<PrivateRoute><Notifications /></PrivateRoute>} />
       <Route path="/search" element={<PrivateRoute><SearchPage /></PrivateRoute>} />
       <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />
+      <Route path="/help" element={<Help />} />
     </Routes>
   )
 }

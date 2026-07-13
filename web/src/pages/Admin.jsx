@@ -6,18 +6,24 @@ import { useAuth } from '../context/AuthContext'
 import { Navigate } from 'react-router-dom'
 
 const TABS = [
+  { id: 'analytics', label: 'Analytics' },
   { id: 'masters', label: 'Master Data' },
   { id: 'users', label: 'Users' },
   { id: 'queue', label: 'Moderation Queue' },
   { id: 'appeals', label: 'Appeals' },
   { id: 'ai', label: 'AI Flags' },
+  { id: 'feedback', label: 'Feedback' },
   { id: 'audit', label: 'Audit Log' },
 ]
 
 export default function Admin() {
   const { isAdmin } = useAuth()
   const [config, setConfig] = useState(null)
-  const [tab, setTab] = useState('masters')
+  const [tab, setTab] = useState('analytics')
+  const [analytics, setAnalytics] = useState(null)
+  const [feedback, setFeedback] = useState([])
+  const [feedbackTotal, setFeedbackTotal] = useState(0)
+  const [feedbackPage, setFeedbackPage] = useState(1)
   const [masters, setMasters] = useState([])
   const [users, setUsers] = useState([])
   const [queue, setQueue] = useState([])
@@ -75,18 +81,30 @@ export default function Admin() {
     setAuditTotal(data.total)
   }, [auditPage])
 
+  const loadAnalytics = useCallback(async () => {
+    setAnalytics(await api.getAnalytics())
+  }, [])
+
+  const loadFeedback = useCallback(async () => {
+    const data = await api.getAdminFeedback({ page: feedbackPage, page_size: 20 })
+    setFeedback(data.items)
+    setFeedbackTotal(data.total)
+  }, [feedbackPage])
+
   useEffect(() => {
     api.getConfig().then(setConfig)
   }, [])
 
   useEffect(() => {
+    if (tab === 'analytics') loadAnalytics()
     if (tab === 'masters') loadMasters()
     if (tab === 'users') loadUsers()
     if (tab === 'queue') loadQueue()
     if (tab === 'appeals') loadAppeals()
     if (tab === 'ai') loadAiFlags()
+    if (tab === 'feedback') loadFeedback()
     if (tab === 'audit') loadAudit()
-  }, [tab, loadMasters, loadUsers, loadQueue, loadAppeals, loadAiFlags, loadAudit])
+  }, [tab, loadAnalytics, loadMasters, loadUsers, loadQueue, loadAppeals, loadAiFlags, loadFeedback, loadAudit])
 
   const handleResolve = async (reportId, status, action) => {
     await api.resolveReport(reportId, {
@@ -128,6 +146,83 @@ export default function Admin() {
             </button>
           ))}
         </div>
+
+        {tab === 'analytics' && (
+          <div>
+            <h2 className="text-lg font-bold mb-4">Platform Analytics</h2>
+            {!analytics ? (
+              <p className="text-slate-400">Loading…</p>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
+                  {[
+                    ['Users', analytics.totals.users, analytics.new_last_7_days.users],
+                    ['Posts', analytics.totals.posts, analytics.new_last_7_days.posts],
+                    ['Comments', analytics.totals.comments, analytics.new_last_7_days.comments],
+                    ['Reactions', analytics.totals.reactions, null],
+                    ['Communities', analytics.totals.communities, null],
+                    ['Events', analytics.totals.events, analytics.new_last_7_days.events],
+                    ['Event sign-ups', analytics.totals.event_registrations, null],
+                    ['Messages', analytics.totals.messages, null],
+                    ['Open reports', analytics.totals.reports_open, null],
+                    ['Active subs', analytics.totals.subscriptions_active, null],
+                  ].map(([label, value, delta]) => (
+                    <div key={label} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                      <p className="text-2xl font-bold gradient-text">{value}</p>
+                      <p className="text-sm text-slate-500">{label}</p>
+                      {delta != null && <p className="text-xs text-emerald-600 mt-0.5">+{delta} this week</p>}
+                    </div>
+                  ))}
+                </div>
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-6 inline-block">
+                  <span className="text-sm text-slate-500">Avg engagement / post: </span>
+                  <span className="font-bold text-slate-800">{analytics.engagement_per_post}</span>
+                </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                    <h3 className="font-bold mb-3">Top communities</h3>
+                    {analytics.top_communities.map((c) => (
+                      <div key={c.name} className="flex justify-between py-1.5 border-b border-slate-50 last:border-0">
+                        <span className="text-slate-700 truncate">{c.name}</span>
+                        <span className="text-slate-500 font-medium">{c.members}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                    <h3 className="font-bold mb-3">Top events</h3>
+                    {analytics.top_events.map((e) => (
+                      <div key={e.title} className="flex justify-between py-1.5 border-b border-slate-50 last:border-0">
+                        <span className="text-slate-700 truncate">{e.title}</span>
+                        <span className="text-slate-500 font-medium">{e.registrations}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {tab === 'feedback' && (
+          <div>
+            <h2 className="text-lg font-bold mb-4">User Feedback</h2>
+            <DataTable
+              columns={[
+                { key: 'category', label: 'Type' },
+                { key: 'message', label: 'Message' },
+                { key: 'rating', label: 'Rating', render: (r) => (r.rating ? `${r.rating}★` : '—') },
+                { key: 'user', label: 'From', render: (r) => r.user?.display_name || 'Anonymous' },
+                { key: 'created_at', label: 'When', render: (r) => new Date(r.created_at).toLocaleDateString() },
+              ]}
+              data={feedback}
+              serverMode
+              total={feedbackTotal}
+              page={feedbackPage}
+              pageSize={20}
+              onPageChange={setFeedbackPage}
+            />
+          </div>
+        )}
 
         {tab === 'masters' && (
           <div>

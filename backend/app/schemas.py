@@ -195,6 +195,22 @@ class AuthorBrief(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class FeedbackCreate(BaseModel):
+    category: str = "general"
+    message: str = Field(min_length=1, max_length=4000)
+    rating: int | None = None
+
+
+class FeedbackOut(BaseModel):
+    id: str
+    category: str
+    message: str
+    rating: int | None = None
+    status: str
+    created_at: datetime
+    user: AuthorBrief | None = None
+
+
 class PostOut(BaseModel):
     id: str
     author_id: str
