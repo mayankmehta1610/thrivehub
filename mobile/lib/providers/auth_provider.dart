@@ -27,9 +27,10 @@ class AuthProvider extends ChangeNotifier {
   Future<void> login(
     String email,
     String password, {
+    String? otp,
     void Function(String message)? onWakeStatus,
   }) async {
-    await api.login(email, password, onWakeStatus: onWakeStatus);
+    await api.login(email, password, otp: otp, onWakeStatus: onWakeStatus);
     user = await api.getMe();
     notifyListeners();
   }

@@ -64,7 +64,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
     );
     if (picked == null || !mounted) return;
     try {
-      final conv = await context.read<AuthProvider>().api.createConversation(picked['id']);
+      final api = context.read<AuthProvider>().api;
+      final conv = picked['group'] == true
+          ? await api.createGroupConversation(picked['title'], List<String>.from(picked['ids']))
+          : await api.createConversation(picked['id']);
       await _loadConversations();
       final match = _conversations.firstWhere((c) => c['id'] == conv['id'], orElse: () => conv);
       setState(() => _selected = match);
@@ -100,13 +103,15 @@ class _MessagesScreenState extends State<MessagesScreen> {
                       itemBuilder: (context, i) {
                         final c = _conversations[i];
                         final participants = c['participants'] as List? ?? [];
-                        final name = participants.isNotEmpty
-                            ? participants[0]['display_name'] ?? 'Chat'
-                            : c['title'] ?? 'Chat';
+                        final isGroup = c['type'] == 'group';
+                        final name = isGroup
+                            ? (c['title'] ?? 'Group')
+                            : (participants.isNotEmpty ? participants[0]['display_name'] ?? 'Chat' : c['title'] ?? 'Chat');
                         final selected = _selected?['id'] == c['id'];
                         return ListTile(
                           selected: selected,
                           selectedTileColor: const Color(0xFFF5F3FF),
+                          leading: isGroup ? const Icon(Icons.groups, color: AppColors.primary, size: 20) : null,
                           title: Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                               maxLines: 1, overflow: TextOverflow.ellipsis),
                           subtitle: Text(c['last_message']?['body'] ?? '', maxLines: 1,
@@ -202,8 +207,22 @@ class _NewConversationSheet extends StatefulWidget {
 
 class _NewConversationSheetState extends State<_NewConversationSheet> {
   final _controller = TextEditingController();
+  final _groupName = TextEditingController();
   List<dynamic> _people = [];
+  final List<Map<String, dynamic>> _selected = [];
+  bool _groupMode = false;
   bool _loading = false;
+
+  bool _isPicked(String id) => _selected.any((m) => m['id'] == id);
+  void _toggle(Map<String, dynamic> p) {
+    setState(() {
+      if (_isPicked(p['id'])) {
+        _selected.removeWhere((m) => m['id'] == p['id']);
+      } else {
+        _selected.add({'id': p['id'], 'name': p['title']});
+      }
+    });
+  }
 
   Future<void> _search(String q) async {
     if (q.trim().length < 2) {
@@ -225,18 +244,55 @@ class _NewConversationSheetState extends State<_NewConversationSheet> {
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: SizedBox(
-        height: 420,
+        height: 480,
         child: Column(
           children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('New message', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text(_groupMode ? 'New group' : 'New message', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment(value: false, label: Text('Direct'), icon: Icon(Icons.person_outline)),
+                  ButtonSegment(value: true, label: Text('Group'), icon: Icon(Icons.groups_outlined)),
+                ],
+                selected: {_groupMode},
+                onSelectionChanged: (s) => setState(() => _groupMode = s.first),
+              ),
+            ),
+            if (_groupMode)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: TextField(
+                  controller: _groupName,
+                  decoration: InputDecoration(
+                    hintText: 'Group name (optional)',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                ),
+              ),
+            if (_groupMode && _selected.isNotEmpty)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: Wrap(
+                    spacing: 6,
+                    children: _selected
+                        .map((m) => Chip(
+                              label: Text(m['name'] ?? ''),
+                              onDeleted: () => _toggle({'id': m['id'], 'title': m['name']}),
+                            ))
+                        .toList(),
+                  ),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.all(16),
               child: TextField(
                 controller: _controller,
-                autofocus: true,
                 decoration: InputDecoration(
                   hintText: 'Search people by name...',
                   prefixIcon: const Icon(Icons.search),
@@ -254,15 +310,40 @@ class _NewConversationSheetState extends State<_NewConversationSheet> {
                           itemCount: _people.length,
                           itemBuilder: (_, i) {
                             final p = _people[i];
+                            final picked = _isPicked(p['id']);
                             return ListTile(
                               leading: const CircleAvatar(child: Icon(Icons.person)),
                               title: Text(p['title'] ?? ''),
                               subtitle: Text(p['subtitle'] ?? ''),
-                              onTap: () => Navigator.pop(context, {'id': p['id'], 'name': p['title']}),
+                              trailing: _groupMode
+                                  ? Icon(picked ? Icons.check_circle : Icons.radio_button_unchecked,
+                                      color: picked ? AppColors.primary : Colors.grey)
+                                  : null,
+                              onTap: () => _groupMode
+                                  ? _toggle(p)
+                                  : Navigator.pop(context, {'id': p['id'], 'name': p['title']}),
                             );
                           },
                         ),
             ),
+            if (_groupMode)
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _selected.length < 2
+                        ? null
+                        : () => Navigator.pop(context, {
+                              'group': true,
+                              'title': _groupName.text.trim().isEmpty ? 'New group' : _groupName.text.trim(),
+                              'ids': _selected.map((m) => m['id']).toList(),
+                            }),
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+                    child: Text('Create group${_selected.isEmpty ? '' : ' (${_selected.length})'}'),
+                  ),
+                ),
+              ),
           ],
         ),
       ),

@@ -17,8 +17,10 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _email = TextEditingController(text: 'alex@thrivehub.com');
   final _password = TextEditingController(text: 'demo1234');
+  final _otp = TextEditingController();
   bool _loading = false;
   bool _waking = false;
+  bool _needsOtp = false;
   String? _error;
   bool _unreachable = false;
 
@@ -51,6 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
       await context.read<AuthProvider>().login(
         _email.text,
         _password.text,
+        otp: _otp.text.trim().isEmpty ? null : _otp.text.trim(),
         onWakeStatus: (_) {
           if (mounted) setState(() => _waking = true);
         },
@@ -62,6 +65,14 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (!mounted) return;
       final msg = e.toString().replaceFirst('Exception: ', '');
+      if (msg == 'Two-factor code required') {
+        setState(() { _needsOtp = true; _error = null; });
+        return;
+      }
+      if (msg == 'Invalid two-factor code') {
+        setState(() { _needsOtp = true; _error = 'That code didn\'t match. Try again.'; });
+        return;
+      }
       setState(() {
         _error = msg;
         _unreachable = e is NetworkException;
@@ -151,6 +162,23 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextField(controller: _email, decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(16))), filled: true, fillColor: Colors.white)),
                   const SizedBox(height: 12),
                   TextField(controller: _password, obscureText: true, decoration: const InputDecoration(labelText: 'Password', border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(16))), filled: true, fillColor: Colors.white)),
+                  if (_needsOtp) ...[
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _otp,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      textAlign: TextAlign.center,
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Authentication code',
+                        hintText: '6-digit code',
+                        counterText: '',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
+                        filled: true, fillColor: Colors.white,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity, height: 52,
@@ -161,7 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
-                      child: Text(_waking ? 'Waking up server...' : _loading ? 'Signing in...' : 'Sign In'),
+                      child: Text(_waking ? 'Waking up server...' : _loading ? 'Signing in...' : _needsOtp ? 'Verify code' : 'Sign In'),
                     ),
                   ),
                 ],

@@ -187,15 +187,30 @@ class ApiService {
   Future<Map<String, dynamic>> login(
     String email,
     String password, {
+    String? otp,
     void Function(String message)? onWakeStatus,
   }) async {
     final awake = await wakeApi(onStatus: onWakeStatus);
     if (!awake) throw NetworkException();
 
-    final data = await post('/auth/login', {'email': email, 'password': password});
+    final body = {'email': email, 'password': password};
+    if (otp != null && otp.isNotEmpty) body['otp'] = otp;
+    final data = await post('/auth/login', body);
     await saveTokens(data['access_token'], data['refresh_token']);
     return data;
   }
+
+  // Two-factor auth
+  Future<Map<String, dynamic>> get2faStatus() => _getMap('/auth/2fa/status');
+  Future<Map<String, dynamic>> setup2fa() => _postMap('/auth/2fa/setup');
+  Future<Map<String, dynamic>> enable2fa(String code) => _postMap('/auth/2fa/enable', {'code': code});
+  Future<Map<String, dynamic>> disable2fa(String code) => _postMap('/auth/2fa/disable', {'code': code});
+
+  // Group conversation + data privacy
+  Future<Map<String, dynamic>> createGroupConversation(String title, List<String> ids) =>
+      _postMap('/messages/conversations', {'type': 'group', 'title': title, 'participant_ids': ids});
+  Future<Map<String, dynamic>> exportMyData() => _getMap('/me/export');
+  Future<void> requestAccountDeletion() => post('/me/deletion-request', {});
 
   Future<Map<String, dynamic>> register(Map<String, dynamic> body) async {
     final awake = await wakeApi();
