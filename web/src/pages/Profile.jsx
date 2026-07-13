@@ -9,7 +9,8 @@ import api from '../api/client'
 import Navbar from '../components/Navbar'
 import PostCard from '../components/PostCard'
 import SafeImage from '../components/SafeImage'
-import ClampText from '../components/ClampText'
+import RichText from '../components/RichText'
+import RichTextEditor from '../components/RichTextEditor'
 import { useAuth } from '../context/AuthContext'
 import { useRequireAuth } from '../hooks/useRequireAuth'
 import { AUTH_MESSAGES } from '../utils/authMessages'
@@ -474,7 +475,7 @@ export default function Profile() {
           <div className="profile-section">
             <h2 className="profile-section-title">About</h2>
             {profile.bio ? (
-              <ClampText text={profile.bio} lines={3} className="text-slate-700 leading-relaxed" title="About" />
+              <RichText text={profile.bio} className="text-slate-700" />
             ) : (
               <p className="text-slate-400 italic">
                 {isOwn ? 'Add a bio to tell your story.' : 'No bio yet.'}
@@ -631,8 +632,10 @@ export default function Profile() {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-slate-500">Bio</label>
-                  <textarea value={editForm.bio || ''} rows={4} placeholder="Tell your story" onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
-                    className="w-full mt-1 px-4 py-2 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400" />
+                  <div className="mt-1">
+                    <RichTextEditor value={editForm.bio} onChange={(v) => setEditForm({ ...editForm, bio: v })}
+                      placeholder="Tell your story…" rows={4} />
+                  </div>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-slate-500">Location</label>

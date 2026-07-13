@@ -6,6 +6,8 @@ import api from '../api/client'
 import Navbar from '../components/Navbar'
 import PostCard from '../components/PostCard'
 import SafeImage from '../components/SafeImage'
+import RichText from '../components/RichText'
+import RichTextEditor from '../components/RichTextEditor'
 import { isValidImageUrl, isVideoUrl, isAudioUrl } from '../utils/images'
 import { getUploadLimits, getFileSizeError } from '../utils/upload'
 import { useAuth } from '../context/AuthContext'
@@ -156,17 +158,16 @@ export default function CommunityDetail() {
               {community.is_member ? <><Check className="w-4 h-4" /> Joined</> : <><UserPlus className="w-4 h-4" /> Join</>}
             </button>
           </div>
-          <p className="mt-4 text-slate-600">{community.description}</p>
+          {community.description && <RichText text={community.description} className="mt-4 text-slate-600" />}
 
           {/* Composer — members and co-admins can post */}
           {isMember ? (
             <form onSubmit={handlePost} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mt-6">
-              <textarea
+              <RichTextEditor
                 value={body}
-                onChange={(e) => setBody(e.target.value)}
-                placeholder={`Share something with ${community.name}...`}
+                onChange={setBody}
+                placeholder={`Share something with ${community.name}…`}
                 rows={3}
-                className="w-full resize-none border-0 focus:outline-none text-slate-700 placeholder:text-slate-400"
               />
               {mediaUrl && (
                 <div className="rounded-xl overflow-hidden border border-slate-100 mb-2">

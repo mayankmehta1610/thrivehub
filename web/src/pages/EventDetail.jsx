@@ -5,7 +5,8 @@ import toast from 'react-hot-toast'
 import api from '../api/client'
 import Navbar from '../components/Navbar'
 import SafeImage from '../components/SafeImage'
-import { isValidImageUrl } from '../utils/images'
+import RichText from '../components/RichText'
+import { isValidImageUrl, isVideoUrl, isAudioUrl } from '../utils/images'
 import { useRequireAuth } from '../hooks/useRequireAuth'
 import { AUTH_MESSAGES } from '../utils/authMessages'
 
@@ -82,7 +83,7 @@ export default function EventDetail() {
       <div className="max-w-3xl mx-auto pb-16">
         {/* Hero */}
         <div className="relative h-64 md:h-80 overflow-hidden">
-          {isValidImageUrl(event.image_url) ? (
+          {isValidImageUrl(event.image_url) && !isVideoUrl(event.image_url) && !isAudioUrl(event.image_url) ? (
             <SafeImage src={event.image_url} alt="" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full gradient-hero" />
@@ -171,11 +172,20 @@ export default function EventDetail() {
             </div>
           </div>
 
+          {/* Video / audio media (images are shown in the hero) */}
+          {isValidImageUrl(event.image_url) && (isVideoUrl(event.image_url) || isAudioUrl(event.image_url)) && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mt-4 overflow-hidden">
+              {isAudioUrl(event.image_url)
+                ? <audio src={event.image_url} controls className="w-full" />
+                : <video src={event.image_url} controls className="w-full max-h-96 rounded-xl bg-black" />}
+            </div>
+          )}
+
           {/* Description */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6 mt-4">
             <h2 className="text-lg font-bold text-slate-900 mb-3">About this event</h2>
-            {event.description ? (
-              <p className="text-slate-700 leading-relaxed whitespace-pre-line">{event.description}</p>
+            {event.description?.trim() ? (
+              <RichText text={event.description} className="text-slate-700" />
             ) : (
               <p className="text-slate-400 italic">No description provided.</p>
             )}

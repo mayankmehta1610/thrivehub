@@ -5,6 +5,7 @@ import api from '../api/client'
 import Navbar from '../components/Navbar'
 import PostCard from '../components/PostCard'
 import SafeImage from '../components/SafeImage'
+import RichTextEditor from '../components/RichTextEditor'
 import { isValidImageUrl, isVideoUrl, isAudioUrl } from '../utils/images'
 import { SOCIAL_META } from '../utils/social'
 import { getUploadLimits, getFileSizeError } from '../utils/upload'
@@ -110,12 +111,11 @@ export default function Feed() {
           </a>
         )}
         <form onSubmit={handlePost} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
-          <textarea
+          <RichTextEditor
             value={newPost}
-            onChange={(e) => setNewPost(e.target.value)}
-            placeholder="Share your skills, sports or adventure moment..."
+            onChange={setNewPost}
+            placeholder="Share your skills, sports or adventure moment…"
             rows={3}
-            className="w-full resize-none border-0 focus:outline-none text-slate-700 placeholder:text-slate-400"
           />
           {imageUrl && (
             <div className="mt-2 rounded-xl overflow-hidden border border-slate-100">

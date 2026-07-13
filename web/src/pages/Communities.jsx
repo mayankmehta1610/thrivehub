@@ -6,6 +6,7 @@ import api from '../api/client'
 import Navbar from '../components/Navbar'
 import DataTable from '../components/DataTable'
 import SafeImage from '../components/SafeImage'
+import RichTextEditor from '../components/RichTextEditor'
 import { isValidImageUrl } from '../utils/images'
 import { getUploadLimits, getFileSizeError } from '../utils/upload'
 import { useRequireAuth } from '../hooks/useRequireAuth'
@@ -126,7 +127,7 @@ export default function Communities() {
 
       {showCreate && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <form onSubmit={handleCreate} className="bg-white rounded-2xl p-6 w-full max-w-md space-y-4">
+          <form onSubmit={handleCreate} className="bg-white rounded-2xl p-6 w-full max-w-md space-y-4 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold">Create Community</h2>
 
             {/* Cover photo */}
@@ -147,10 +148,12 @@ export default function Communities() {
               <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
             </div>
 
-            {['name', 'slug', 'description'].map((f) => (
+            {['name', 'slug'].map((f) => (
               <input key={f} placeholder={f} value={form[f]} onChange={(e) => setForm({ ...form, [f]: e.target.value })}
-                required={f !== 'description'} className="w-full px-4 py-2 rounded-xl border focus:outline-none focus:ring-2 focus:ring-violet-400" />
+                required className="w-full px-4 py-2 rounded-xl border focus:outline-none focus:ring-2 focus:ring-violet-400" />
             ))}
+            <RichTextEditor value={form.description} onChange={(v) => setForm({ ...form, description: v })}
+              placeholder="Describe your community…" rows={4} />
             <div className="flex gap-2">
               <button type="button" onClick={() => setShowCreate(false)} className="flex-1 py-2 rounded-xl border">Cancel</button>
               <button type="submit" className="flex-1 py-2 rounded-xl gradient-hero text-white font-medium">Create</button>

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../api/client'
 import SafeImage from './SafeImage'
+import RichText from './RichText'
+import RichTextEditor from './RichTextEditor'
 import { useAuth } from '../context/AuthContext'
 import { useRequireAuth } from '../hooks/useRequireAuth'
 import { AUTH_MESSAGES } from '../utils/authMessages'
@@ -90,29 +92,21 @@ export default function CommentSection({ postId, commentsEnabled = true, onComme
     <div className="px-4 pb-4 border-t border-slate-50 bg-slate-50/50">
       {user ? (
         <form onSubmit={submitComment} className="py-3 space-y-2">
-          <div className="flex gap-2">
-            <textarea
-              value={newComment}
-              onChange={(e) => {
-                setNewComment(e.target.value)
-                setError('')
-              }}
-              placeholder="Write a comment..."
-              rows={2}
-              maxLength={MAX_LENGTH}
-              className="flex-1 px-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 resize-none"
-            />
+          <RichTextEditor
+            value={newComment}
+            onChange={(v) => { setNewComment(v.slice(0, MAX_LENGTH)); setError('') }}
+            placeholder="Write a comment…"
+            rows={2}
+          />
+          <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+            {error ? <span className="text-red-500">{error}</span> : <span>{newComment.trim().length}/{MAX_LENGTH}</span>}
             <button
               type="submit"
               disabled={loading || !newComment.trim()}
-              className="self-end px-4 py-2 rounded-xl gradient-hero text-white text-sm font-medium disabled:opacity-50"
+              className="px-4 py-1.5 rounded-xl gradient-hero text-white text-sm font-medium disabled:opacity-50"
             >
-              {loading ? '...' : 'Post'}
+              {loading ? '…' : 'Post'}
             </button>
-          </div>
-          <div className="flex justify-between text-xs text-slate-400 px-1">
-            {error ? <span className="text-red-500">{error}</span> : <span />}
-            <span>{newComment.trim().length}/{MAX_LENGTH}</span>
           </div>
         </form>
       ) : (
@@ -155,9 +149,9 @@ export default function CommentSection({ postId, commentsEnabled = true, onComme
                     · {timeAgo(c.created_at)}
                   </time>
                 </div>
-                <p className="mt-1 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap break-words">
-                  {c.body}
-                </p>
+                <div className="mt-1 text-sm text-slate-700 break-words">
+                  <RichText text={c.body} />
+                </div>
               </div>
             </article>
           ))}
