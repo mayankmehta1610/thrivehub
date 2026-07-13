@@ -13,7 +13,7 @@ import ClampText from '../components/ClampText'
 import { useAuth } from '../context/AuthContext'
 import { useRequireAuth } from '../hooks/useRequireAuth'
 import { AUTH_MESSAGES } from '../utils/authMessages'
-import { filterValidImages } from '../utils/images'
+import { filterValidImages, isValidImageUrl } from '../utils/images'
 import { SOCIAL_PROVIDERS } from '../utils/social'
 import { getUploadLimits, getFileSizeError } from '../utils/upload'
 
