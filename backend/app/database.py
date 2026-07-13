@@ -68,6 +68,11 @@ def _migrate_sqlite_columns() -> None:
         "posts": [
             ("comments_enabled", "BOOLEAN DEFAULT 1"),
         ],
+        "social_connections": [
+            ("access_token", "TEXT"),
+            ("refresh_token", "TEXT"),
+            ("token_expires_at", "DATETIME"),
+        ],
     }
     with engine.begin() as conn:
         for table, columns in migrations.items():
@@ -83,6 +88,9 @@ def _migrate_postgres_columns() -> None:
         return
     migrations = [
         ('ALTER TABLE posts ADD COLUMN IF NOT EXISTS comments_enabled BOOLEAN DEFAULT TRUE'),
+        ('ALTER TABLE social_connections ADD COLUMN IF NOT EXISTS access_token TEXT'),
+        ('ALTER TABLE social_connections ADD COLUMN IF NOT EXISTS refresh_token TEXT'),
+        ('ALTER TABLE social_connections ADD COLUMN IF NOT EXISTS token_expires_at TIMESTAMPTZ'),
     ]
     with engine.begin() as conn:
         for stmt in migrations:

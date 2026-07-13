@@ -168,9 +168,11 @@ class PostCreate(BaseModel):
 
 class SocialConnectionOut(BaseModel):
     provider: str
+    label: str | None = None
     connected: bool = False
+    configured: bool = False  # whether live OAuth credentials are set for this provider
     external_username: str | None = None
-    status: str | None = None
+    status: str | None = None  # connected | demo
 
 
 class SocialConnectRequest(BaseModel):

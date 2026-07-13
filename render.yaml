@@ -57,6 +57,30 @@ services:
         sync: false
       - key: FCM_PROJECT_ID
         sync: false
+      # Public URLs (used for social OAuth redirects)
+      - key: WEB_URL
+        value: https://thrivehub-web.onrender.com
+      - key: PUBLIC_API_URL
+        value: https://thrivehub-api.onrender.com
+      # Social publishing OAuth — set these to enable LIVE connect + cross-posting.
+      # Register a developer app on each platform; redirect URI is
+      #   {PUBLIC_API_URL}/api/v1/integrations/{provider}/callback
+      - key: YOUTUBE_CLIENT_ID
+        sync: false
+      - key: YOUTUBE_CLIENT_SECRET
+        sync: false
+      - key: INSTAGRAM_CLIENT_ID
+        sync: false
+      - key: INSTAGRAM_CLIENT_SECRET
+        sync: false
+      - key: X_CLIENT_ID
+        sync: false
+      - key: X_CLIENT_SECRET
+        sync: false
+      - key: FACEBOOK_CLIENT_ID
+        sync: false
+      - key: FACEBOOK_CLIENT_SECRET
+        sync: false
 
   # React (Vite) frontend — static site with API proxy
   - type: web

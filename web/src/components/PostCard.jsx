@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Heart, ThumbsDown, MessageCircle, Share2, MoreHorizontal, MessageSquareOff } from 'lucide-react'
 import api from '../api/client'
 import SafeImage from './SafeImage'
+import ClampText from './ClampText'
 import CommentSection from './CommentSection'
 import EngagementModal from './EngagementModal'
 import { useAuth } from '../context/AuthContext'
@@ -168,9 +169,7 @@ export default function PostCard({ post, onUpdate, isOwn = false, linkToDetail =
 
         <div className="px-4 pb-3">
           {linkToDetail ? (
-            <Link to={`/posts/${p.id}`} className="block">
-              <p className="text-slate-700 leading-relaxed whitespace-pre-wrap hover:text-slate-900">{p.body}</p>
-            </Link>
+            <ClampText text={p.body} lines={4} moreHref={`/posts/${p.id}`} className="text-slate-700 leading-relaxed" title="Post" />
           ) : (
             <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">{p.body}</p>
           )}

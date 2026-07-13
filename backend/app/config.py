@@ -29,6 +29,20 @@ class Settings(BaseSettings):
     fcm_server_key: str | None = None
     fcm_project_id: str | None = None
 
+    # Public URLs (used for OAuth redirects back to the app)
+    web_url: str = "https://thrivehub-web.onrender.com"
+    public_api_url: str = "https://thrivehub-api.onrender.com"
+
+    # Social publishing OAuth credentials (optional — enable live cross-posting)
+    youtube_client_id: str | None = None
+    youtube_client_secret: str | None = None
+    instagram_client_id: str | None = None
+    instagram_client_secret: str | None = None
+    x_client_id: str | None = None
+    x_client_secret: str | None = None
+    facebook_client_id: str | None = None
+    facebook_client_secret: str | None = None
+
     class Config:
         env_file = ".env"
 

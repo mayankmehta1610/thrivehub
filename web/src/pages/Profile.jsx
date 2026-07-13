@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
   MapPin, Globe, UserPlus, UserMinus, Ban, VolumeX, Flag, Edit,
@@ -9,6 +9,7 @@ import api from '../api/client'
 import Navbar from '../components/Navbar'
 import PostCard from '../components/PostCard'
 import SafeImage from '../components/SafeImage'
+import ClampText from '../components/ClampText'
 import { useAuth } from '../context/AuthContext'
 import { useRequireAuth } from '../hooks/useRequireAuth'
 import { AUTH_MESSAGES } from '../utils/authMessages'
@@ -57,6 +58,7 @@ function PhotoLightbox({ photo, onClose }) {
 export default function Profile() {
   const { username } = useParams()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { user: currentUser } = useAuth()
   const requireAuth = useRequireAuth()
   const [config, setConfig] = useState(null)
@@ -72,6 +74,7 @@ export default function Profile() {
   const [lightboxPhoto, setLightboxPhoto] = useState(null)
   const [connections, setConnections] = useState([])
   const [connBusy, setConnBusy] = useState('')
+  const [uploadingField, setUploadingField] = useState('')
   const [postsLoading, setPostsLoading] = useState(true)
   const [uploadError, setUploadError] = useState('')
   const avatarFileRef = useRef(null)
@@ -109,6 +112,18 @@ export default function Profile() {
       setPosts(data?.items || [])
     }).catch(console.error).finally(() => setPostsLoading(false))
   }, [username])
+
+  useEffect(() => {
+    const connected = searchParams.get('connected')
+    const err = searchParams.get('connect_error')
+    if (connected) toast.success(`${connected} connected 🎉`)
+    if (err) toast.error(`Could not connect ${err}. Check the app's API credentials.`)
+    if (connected || err) {
+      searchParams.delete('connected'); searchParams.delete('connect_error')
+      setSearchParams(searchParams, { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const isOwn = currentUser?.profile?.username === username
   const coverUrl = profile?.cover_url || config?.hero_image
@@ -182,19 +197,40 @@ export default function Profile() {
     api.getSocialConnections().then(setConnections).catch(() => setConnections([]))
   }
 
-  const toggleConnection = async (provider, connected) => {
+  const refreshConnections = async () => setConnections(await api.getSocialConnections())
+
+  const connectLive = async (provider) => {
     setConnBusy(provider)
     try {
-      if (connected) {
-        await api.disconnectSocial(provider)
-        toast.success('Disconnected')
-      } else {
-        await api.connectSocial(provider)
-        toast.success('Connected 🎉')
-      }
-      setConnections(await api.getSocialConnections())
+      const { authorize_url } = await api.getSocialAuthorizeUrl(provider)
+      window.location.href = authorize_url // real OAuth consent screen
     } catch (err) {
-      toast.error(err?.message || 'Could not update connection')
+      toast.error(err?.message || 'Live connect not available yet')
+      setConnBusy('')
+    }
+  }
+
+  const demoConnect = async (provider) => {
+    setConnBusy(provider)
+    try {
+      await api.connectSocial(provider)
+      await refreshConnections()
+      toast.success('Demo connection added (preview only)')
+    } catch (err) {
+      toast.error(err?.message || 'Could not connect')
+    } finally {
+      setConnBusy('')
+    }
+  }
+
+  const disconnectConn = async (provider) => {
+    setConnBusy(provider)
+    try {
+      await api.disconnectSocial(provider)
+      await refreshConnections()
+      toast.success('Disconnected')
+    } catch (err) {
+      toast.error(err?.message || 'Could not disconnect')
     } finally {
       setConnBusy('')
     }
@@ -210,11 +246,14 @@ export default function Profile() {
       return
     }
     setUploadError('')
+    setUploadingField(field)
     try {
       const result = await api.uploadMedia(file, limits)
       setEditForm((prev) => ({ ...prev, [field]: result.url }))
     } catch (err) {
       setUploadError(err.message)
+    } finally {
+      setUploadingField('')
     }
   }
 
@@ -323,7 +362,7 @@ export default function Profile() {
           <div className="profile-section">
             <h2 className="profile-section-title">About</h2>
             {profile.bio ? (
-              <p className="text-slate-700 leading-relaxed whitespace-pre-line">{profile.bio}</p>
+              <ClampText text={profile.bio} lines={3} className="text-slate-700 leading-relaxed" title="About" />
             ) : (
               <p className="text-slate-400 italic">
                 {isOwn ? 'Add a bio to tell your story.' : 'No bio yet.'}
@@ -429,110 +468,126 @@ export default function Profile() {
       )}
 
       {editing && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md space-y-4 shadow-xl">
-            <h3 className="text-lg font-bold text-slate-900">Edit Profile</h3>
-            {uploadError && (
-              <p className="text-sm text-red-600">{uploadError}</p>
-            )}
-            <div className="flex gap-2">
-              <input
-                ref={avatarFileRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => handlePhotoUpload(e.target.files?.[0], 'avatar_url')}
-              />
-              <button
-                type="button"
-                onClick={() => avatarFileRef.current?.click()}
-                className="px-3 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50"
-              >
-                Upload avatar
-              </button>
-              <input
-                ref={coverFileRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => handlePhotoUpload(e.target.files?.[0], 'cover_url')}
-              />
-              <button
-                type="button"
-                onClick={() => coverFileRef.current?.click()}
-                className="px-3 py-2 text-sm rounded-lg border border-slate-200 hover:bg-slate-50"
-              >
-                Upload cover
-              </button>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setEditing(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 shrink-0">
+              <h3 className="text-lg font-bold text-slate-900">Edit Profile</h3>
+              <button onClick={() => setEditing(false)} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-50"><X className="w-5 h-5" /></button>
             </div>
-            {['display_name', 'bio', 'location', 'website', 'avatar_url', 'cover_url'].map((field) => (
-              field === 'bio' ? (
-                <textarea
-                  key={field}
-                  value={editForm[field] || ''}
-                  placeholder="Bio"
-                  rows={4}
-                  onChange={(e) => setEditForm({ ...editForm, [field]: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-400"
-                />
-              ) : (
-                <input
-                  key={field}
-                  value={editForm[field] || ''}
-                  placeholder={field.replace(/_/g, ' ')}
-                  onChange={(e) => setEditForm({ ...editForm, [field]: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-400"
-                />
-              )
-            ))}
-            {/* Connected accounts — cross-post to external channels */}
-            <div className="pt-2 border-t border-slate-100">
-              <h4 className="text-sm font-semibold text-slate-800 mb-1">Connected Accounts</h4>
-              <p className="text-xs text-slate-400 mb-3">
-                Connect channels to also publish your posts there. (Live publishing to each platform
-                requires that platform's API credentials — connecting here enables cross-post targets.)
-              </p>
-              <div className="space-y-2">
-                {SOCIAL_PROVIDERS.map(({ code, label, emoji }) => {
-                  const conn = connections.find((c) => c.provider === code)
-                  const connected = !!conn?.connected
-                  return (
-                    <div key={code} className="flex items-center justify-between">
-                      <span className="flex items-center gap-2 text-sm text-slate-700">
-                        <span aria-hidden="true">{emoji}</span> {label}
-                        {connected && conn?.external_username && (
-                          <span className="text-xs text-slate-400">@{conn.external_username}</span>
-                        )}
-                      </span>
-                      <button
-                        type="button"
-                        disabled={connBusy === code}
-                        onClick={() => toggleConnection(code, connected)}
-                        className={`px-3 py-1 rounded-lg text-xs font-medium border disabled:opacity-50 ${
-                          connected
-                            ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100'
-                            : 'bg-white text-violet-600 border-violet-200 hover:bg-violet-50'
-                        }`}
-                      >
-                        {connBusy === code ? '…' : connected ? 'Disconnect' : 'Connect'}
+
+            {/* Scrollable body */}
+            <div className="overflow-y-auto px-5 py-4 space-y-4">
+              {uploadError && <p className="text-sm text-red-600">{uploadError}</p>}
+
+              <input ref={coverFileRef} type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoUpload(e.target.files?.[0], 'cover_url')} />
+              <input ref={avatarFileRef} type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoUpload(e.target.files?.[0], 'avatar_url')} />
+
+              {/* Cover + avatar upload */}
+              <div>
+                <div className="relative rounded-xl overflow-hidden h-28 bg-slate-100">
+                  {isValidImageUrl(editForm.cover_url)
+                    ? <SafeImage src={editForm.cover_url} alt="" className="w-full h-full object-cover" />
+                    : <div className="w-full h-full gradient-hero" />}
+                  <button type="button" onClick={() => coverFileRef.current?.click()}
+                    className="absolute top-2 right-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/55 text-white text-xs hover:bg-black/70">
+                    <Camera className="w-3.5 h-3.5" /> {uploadingField === 'cover_url' ? 'Uploading…' : 'Change cover'}
+                  </button>
+                  <div className="absolute -bottom-6 left-4">
+                    <div className="relative">
+                      <SafeImage src={editForm.avatar_url || avatarUrl} alt="" className="w-16 h-16 rounded-full object-cover border-4 border-white bg-slate-200" />
+                      <button type="button" onClick={() => avatarFileRef.current?.click()}
+                        className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-violet-600 text-white flex items-center justify-center border-2 border-white hover:bg-violet-700"
+                        title="Change avatar">
+                        <Camera className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                  )
-                })}
+                  </div>
+                </div>
+                <div className="h-6" />
+                <p className="text-xs text-slate-400">
+                  {uploadingField === 'avatar_url' ? 'Uploading avatar…' : 'Tap a camera icon to upload a cover photo or avatar (JPG/PNG, up to 500 KB).'}
+                </p>
+              </div>
+
+              {/* Text fields */}
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-slate-500">Display name</label>
+                  <input value={editForm.display_name || ''} onChange={(e) => setEditForm({ ...editForm, display_name: e.target.value })}
+                    className="w-full mt-1 px-4 py-2 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-500">Bio</label>
+                  <textarea value={editForm.bio || ''} rows={4} placeholder="Tell your story" onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+                    className="w-full mt-1 px-4 py-2 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-500">Location</label>
+                  <input value={editForm.location || ''} placeholder="City, Country" onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                    className="w-full mt-1 px-4 py-2 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-500">Website</label>
+                  <input value={editForm.website || ''} placeholder="https://…" onChange={(e) => setEditForm({ ...editForm, website: e.target.value })}
+                    className="w-full mt-1 px-4 py-2 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400" />
+                </div>
+              </div>
+
+              {/* Connected accounts */}
+              <div className="pt-3 border-t border-slate-100">
+                <h4 className="text-sm font-semibold text-slate-800 mb-1">Connected Accounts</h4>
+                <p className="text-xs text-slate-400 mb-3">
+                  Publish your posts to these channels too. <strong>Live</strong> connect uses the platform's real
+                  sign-in and needs its API keys set on the server; otherwise add a <strong>Demo</strong> connection to preview cross-posting.
+                </p>
+                <div className="space-y-2">
+                  {SOCIAL_PROVIDERS.map(({ code, label, emoji }) => {
+                    const conn = connections.find((c) => c.provider === code)
+                    const connected = !!conn?.connected
+                    const configured = !!conn?.configured
+                    const isDemo = conn?.status === 'demo'
+                    return (
+                      <div key={code} className="flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-2 text-sm text-slate-700 min-w-0">
+                          <span aria-hidden="true">{emoji}</span>
+                          <span className="truncate">{label}</span>
+                          {connected && conn?.external_username && <span className="text-xs text-slate-400 truncate">@{conn.external_username}</span>}
+                          {connected && (isDemo
+                            ? <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200 shrink-0">Demo</span>
+                            : <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-200 shrink-0">Live</span>)}
+                        </span>
+                        <div className="shrink-0">
+                          {connected ? (
+                            <button type="button" disabled={connBusy === code} onClick={() => disconnectConn(code)}
+                              className="px-3 py-1 rounded-lg text-xs font-medium border bg-white text-slate-600 border-slate-200 hover:bg-slate-50 disabled:opacity-50">
+                              {connBusy === code ? '…' : 'Disconnect'}
+                            </button>
+                          ) : configured ? (
+                            <button type="button" disabled={connBusy === code} onClick={() => connectLive(code)}
+                              className="px-3 py-1 rounded-lg text-xs font-medium border bg-violet-600 text-white border-violet-600 hover:bg-violet-700 disabled:opacity-50">
+                              {connBusy === code ? '…' : 'Connect'}
+                            </button>
+                          ) : (
+                            <button type="button" disabled={connBusy === code} onClick={() => demoConnect(code)}
+                              title="Live connect needs this platform's API credentials on the server"
+                              className="px-3 py-1 rounded-lg text-xs font-medium border bg-white text-violet-600 border-violet-200 hover:bg-violet-50 disabled:opacity-50">
+                              {connBusy === code ? '…' : 'Try demo'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             </div>
 
-            <div className="flex gap-2 justify-end pt-2">
-              <button onClick={() => setEditing(false)} className="px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-50">
-                Cancel
-              </button>
-              <button
-                onClick={saveProfile}
-                disabled={!!uploadError}
-                className="btn-primary px-4 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Save Changes
-              </button>
+            {/* Footer */}
+            <div className="flex gap-2 justify-end px-5 py-3 border-t border-slate-100 shrink-0">
+              <button onClick={() => setEditing(false)} className="px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-50">Cancel</button>
+              <button onClick={saveProfile} disabled={!!uploadError || !!uploadingField}
+                className="btn-primary px-4 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed">Save Changes</button>
             </div>
           </div>
         </div>

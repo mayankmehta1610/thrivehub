@@ -552,6 +552,11 @@ class ApiClient {
     return this.delete(`/me/social-connections/${provider}`)
   }
 
+  // Returns { authorize_url } for the provider's real OAuth consent screen.
+  getSocialAuthorizeUrl(provider) {
+    return this.get(`/integrations/${provider}/authorize`)
+  }
+
   // Push
   registerDevice(platform, token) {
     return this.post('/push/register', { platform, token })

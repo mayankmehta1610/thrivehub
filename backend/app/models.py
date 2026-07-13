@@ -621,7 +621,10 @@ class SocialConnection(Base):
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
     provider: Mapped[str] = mapped_column(String(32))  # youtube | instagram | x | facebook
     external_username: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    status: Mapped[str] = mapped_column(String(32), default="connected")
+    status: Mapped[str] = mapped_column(String(32), default="connected")  # connected (real OAuth) | demo
+    access_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    refresh_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     connected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     user: Mapped["User"] = relationship()
