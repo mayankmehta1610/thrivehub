@@ -236,6 +236,32 @@ export default function Profile() {
     }
   }
 
+  const downloadMyData = async () => {
+    try {
+      const data = await api.exportMyData()
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `thrivehub-data-${profile?.username || 'me'}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success('Your data has been downloaded')
+    } catch (err) {
+      toast.error(err?.message || 'Could not export your data')
+    }
+  }
+
+  const requestDeletion = async () => {
+    if (!window.confirm('Request deletion of your account? Our team will process it — you can keep using ThriveHub until then.')) return
+    try {
+      const res = await api.requestAccountDeletion()
+      toast.success(res?.status === 'already_requested' ? 'You already have a deletion request pending' : 'Deletion request received')
+    } catch (err) {
+      toast.error(err?.message || 'Could not submit request')
+    }
+  }
+
   const handlePhotoUpload = async (file, field) => {
     if (!requireAuth(AUTH_MESSAGES.uploadMedia)) return
     if (!file) return
@@ -579,6 +605,22 @@ export default function Profile() {
                       </div>
                     )
                   })}
+                </div>
+              </div>
+
+              {/* Your data (privacy) */}
+              <div className="pt-3 border-t border-slate-100">
+                <h4 className="text-sm font-semibold text-slate-800 mb-1">Your data</h4>
+                <p className="text-xs text-slate-400 mb-3">Download everything we hold about you, or ask us to delete your account.</p>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={downloadMyData}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 text-slate-700 hover:bg-slate-50">
+                    Download my data
+                  </button>
+                  <button type="button" onClick={requestDeletion}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium border border-red-200 text-red-600 hover:bg-red-50">
+                    Request account deletion
+                  </button>
                 </div>
               </div>
             </div>

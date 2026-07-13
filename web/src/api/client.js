@@ -455,6 +455,15 @@ class ApiClient {
     return this.get('/admin/feedback', params)
   }
 
+  // Data privacy
+  exportMyData() {
+    return this.get('/me/export')
+  }
+
+  requestAccountDeletion() {
+    return this.post('/me/deletion-request')
+  }
+
   // Admin
   getAdminMasters(params) {
     return this.get('/admin/masters', params)
