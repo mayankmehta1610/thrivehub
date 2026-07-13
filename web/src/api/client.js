@@ -466,9 +466,13 @@ class ApiClient {
     return this.post('/notifications/read-all')
   }
 
-  // Search
+  // Search & Explore
   search(q, params = {}) {
     return this.get('/search', { q, ...params })
+  }
+
+  getExplore() {
+    return this.get('/explore')
   }
 
   // Masters

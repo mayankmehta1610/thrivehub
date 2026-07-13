@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Bell, Home, LogOut, MessageCircle, Search, Users, Calendar, Settings, HelpCircle } from 'lucide-react'
+import { Bell, Home, LogOut, MessageCircle, Search, Users, Calendar, Settings, HelpCircle, Compass } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import SafeImage from './SafeImage'
 
@@ -11,6 +11,7 @@ export default function Navbar({ config, dark = false }) {
   const links = user
     ? [
         { to: '/feed', icon: Home, label: 'Feed' },
+        { to: '/explore', icon: Compass, label: 'Explore' },
         { to: '/communities', icon: Users, label: 'Communities' },
         { to: '/events', icon: Calendar, label: 'Events' },
         { to: '/messages', icon: MessageCircle, label: 'Messages' },

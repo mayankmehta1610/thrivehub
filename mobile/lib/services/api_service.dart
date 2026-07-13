@@ -273,6 +273,7 @@ class ApiService {
   Future<void> markAllNotificationsRead() => post('/notifications/read-all', {});
   Future<Map<String, dynamic>> search(String q, {String? entity}) =>
       _getMap('/search', {'q': q, if (entity != null) 'entity': entity});
+  Future<Map<String, dynamic>> getExplore() => _getMap('/explore');
   Future<Map<String, dynamic>> createPost(String body, {String? imageUrl}) =>
       _postMap('/posts', {'body': body, if (imageUrl != null) 'image_url': imageUrl});
   Future<void> reactPost(String postId) => post('/posts/$postId/reactions', {'reaction_type': 'like'});

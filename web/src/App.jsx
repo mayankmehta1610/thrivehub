@@ -18,6 +18,7 @@ import PostDetail from './pages/PostDetail'
 import Messages from './pages/Messages'
 import Notifications from './pages/Notifications'
 import SearchPage from './pages/SearchPage'
+import Explore from './pages/Explore'
 import Admin from './pages/Admin'
 import Help from './pages/Help'
 
@@ -54,6 +55,7 @@ function AppRoutes() {
       <Route path="/messages" element={<PrivateRoute><Messages /></PrivateRoute>} />
       <Route path="/notifications" element={<PrivateRoute><Notifications /></PrivateRoute>} />
       <Route path="/search" element={<PrivateRoute><SearchPage /></PrivateRoute>} />
+      <Route path="/explore" element={<PrivateRoute><Explore /></PrivateRoute>} />
       <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />
       <Route path="/help" element={<Help />} />
     </Routes>
